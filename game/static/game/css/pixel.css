@@ -1,0 +1,733 @@
+/* Pixel UI (Phase 2).
+ *
+ * One limited palette, square corners, hard shadows, no gradients, no rounded
+ * borders. Sprites and the canvas arrive in Phase 4 and reuse these colors.
+ */
+
+:root {
+  --ink: #0b1020;
+  --deep: #14213d;
+  --water-0: #1d3b5c;
+  --water-1: #2a5d7e;
+  --water-2: #3a8496;
+  --sand: #c2a25a;
+  --sand-dark: #8a6f34;
+  --plant: #3f7d3a;
+  --plant-light: #6cae4e;
+  --coral: #d0616a;
+  --gold: #f2c14e;
+  --cream: #f6f2e6;
+  --white: #ffffff;
+  --muted: #9fb3c8;
+  --shadow: #000000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--deep);
+  color: var(--cream);
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.9;
+  image-rendering: pixelated;
+}
+
+a {
+  color: var(--gold);
+}
+
+h1,
+h2 {
+  margin: 0 0 20px;
+  font-size: 18px;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-size: 12px;
+}
+
+/* Header --------------------------------------------------------------- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--ink);
+  border-bottom: 4px solid var(--water-2);
+}
+
+.brand {
+  color: var(--gold);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-user {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.inline-form {
+  margin: 0;
+}
+
+/* Layout --------------------------------------------------------------- */
+
+.page {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.panel {
+  padding: 24px;
+  background: var(--water-0);
+  border: 4px solid var(--ink);
+  box-shadow: 8px 8px 0 var(--shadow);
+}
+
+.panel + .panel {
+  margin-top: 24px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+/* Buttons and links ---------------------------------------------------- */
+
+.btn {
+  display: inline-block;
+  padding: 12px 16px;
+  background: var(--gold);
+  color: var(--ink);
+  border: 4px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow);
+  font-family: inherit;
+  font-size: 10px;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.btn:active {
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+.btn-small {
+  padding: 8px 12px;
+  font-size: 8px;
+}
+
+.btn-secondary {
+  background: var(--water-2);
+  color: var(--cream);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Forms ---------------------------------------------------------------- */
+
+form.pixel-form {
+  display: grid;
+  gap: 16px;
+  max-width: 480px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+label {
+  font-size: 8px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  background: var(--ink);
+  color: var(--cream);
+  border: 4px solid var(--water-2);
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+input:focus {
+  outline: 4px solid var(--gold);
+  outline-offset: 0;
+}
+
+input.join-code {
+  letter-spacing: 8px;
+  text-transform: uppercase;
+}
+
+.errorlist {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--coral);
+  color: var(--ink);
+  list-style: none;
+  font-size: 8px;
+  border: 4px solid var(--ink);
+}
+
+.help {
+  font-size: 8px;
+  color: var(--muted);
+}
+
+/* Messages ------------------------------------------------------------- */
+
+.messages {
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  padding: 12px 16px;
+  background: var(--water-1);
+  border: 4px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow);
+  font-size: 8px;
+}
+
+.message-success {
+  background: var(--plant);
+}
+
+.message-error {
+  background: var(--coral);
+  color: var(--ink);
+}
+
+/* Tank list ------------------------------------------------------------ */
+
+.tank-list {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tank-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  background: var(--water-1);
+  border: 4px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+
+.tank-card h3 {
+  margin: 0;
+  font-size: 10px;
+}
+
+.tank-card .meta {
+  font-size: 8px;
+  color: var(--muted);
+}
+
+/* Tank page ------------------------------------------------------------ */
+
+.tank-header {
+  margin-bottom: 24px;
+}
+
+.tank-layout {
+  display: grid;
+  grid-template-columns: auto 280px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* The canvas is only ever displayed at a whole-number multiple of 320x180:
+ * 3x on wide screens, 2x on medium, 1x on narrow. Never a percentage. */
+#tank-canvas {
+  display: block;
+  width: 960px;
+  height: 540px;
+  background: var(--water-0);
+  border: 4px solid var(--ink);
+  box-shadow: 8px 8px 0 var(--shadow);
+  image-rendering: pixelated;
+}
+
+@media (max-width: 1360px) {
+  .tank-layout {
+    grid-template-columns: auto;
+  }
+}
+
+@media (max-width: 1040px) {
+  #tank-canvas {
+    width: 640px;
+    height: 360px;
+  }
+}
+
+@media (max-width: 700px) {
+  #tank-canvas {
+    width: 320px;
+    height: 180px;
+  }
+}
+
+.tank-alerts {
+  display: flex;
+  gap: 12px;
+  min-height: 8px;
+  margin-top: 16px;
+}
+
+.tank-side {
+  display: grid;
+  gap: 24px;
+}
+
+.my-fish-name {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+.stat {
+  margin: 20px 0;
+}
+
+.stat-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 8px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.bar {
+  display: flex;
+  gap: 2px;
+  height: 24px;
+  padding: 3px;
+  background: var(--ink);
+  border: 4px solid var(--water-2);
+}
+
+.bar .seg {
+  flex: 1 1 0;
+  background: var(--water-1);
+}
+
+.bar .seg.is-on {
+  background: var(--gold);
+}
+
+.bar-hunger .seg.is-on {
+  background: var(--coral);
+}
+
+.feed-button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.feed-button[disabled] {
+  background: var(--water-1);
+  color: var(--muted);
+  cursor: default;
+  box-shadow: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  background: var(--water-2);
+  color: var(--cream);
+  border: 4px solid var(--ink);
+  font-size: 8px;
+}
+
+.badge-error {
+  background: var(--coral);
+  color: var(--ink);
+}
+
+.badge a {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+/* Toasts --------------------------------------------------------------- */
+
+.toasts {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 8px 12px;
+  background: var(--water-1);
+  border: 4px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow);
+  font-size: 8px;
+}
+
+.toast-success {
+  background: var(--plant);
+}
+
+.toast-error {
+  background: var(--coral);
+  color: var(--ink);
+}
+
+/* Owner tools and moderation (Phase 5) -------------------------------- */
+
+.btn-danger {
+  background: var(--coral);
+  color: var(--ink);
+}
+
+select {
+  padding: 6px;
+  background: var(--ink);
+  color: var(--cream);
+  border: 4px solid var(--water-2);
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 8px;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 24px;
+  max-width: 900px;
+}
+
+.member-admin-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+
+.member-admin-list li {
+  padding-bottom: 12px;
+  border-bottom: 4px solid var(--water-1);
+}
+
+.member-admin-list li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.member-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 8px;
+}
+
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.member-actions input[type="text"] {
+  width: 160px;
+  padding: 6px 8px;
+  font-size: 8px;
+}
+
+.inline-form {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+
+.danger-zone {
+  border-color: var(--coral);
+}
+
+.danger-zone h2 {
+  color: var(--coral);
+}
+
+.fish-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.fish-list li {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rename-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 4px solid var(--water-1);
+}
+
+.rename-row {
+  display: flex;
+  gap: 8px;
+}
+
+.rename-row input[type="text"] {
+  padding: 8px;
+  font-size: 8px;
+}
+
+/* Pixel dialog --------------------------------------------------------- */
+
+.pixel-dialog {
+  padding: 0;
+  background: var(--water-0);
+  color: var(--cream);
+  border: 4px solid var(--ink);
+  box-shadow: 8px 8px 0 var(--shadow);
+  max-width: 420px;
+  font-family: "Press Start 2P", "Courier New", monospace;
+}
+
+.pixel-dialog::backdrop {
+  background: rgba(11, 16, 32, 0.8);
+}
+
+.dialog-form {
+  padding: 24px;
+  display: grid;
+  gap: 24px;
+}
+
+.dialog-form p {
+  margin: 0;
+  font-size: 8px;
+  line-height: 2;
+}
+
+.join-code {
+  display: inline-block;
+  padding: 8px 12px;
+  background: var(--ink);
+  color: var(--gold);
+  border: 4px solid var(--water-2);
+  font-size: 12px;
+  letter-spacing: 6px;
+}
+
+.fish-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fish-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 4px solid var(--water-1);
+  font-size: 8px;
+}
+
+.fish-list li:last-child {
+  border-bottom: 0;
+}
+
+/* Quiz dialog (Phase 7) ------------------------------------------------- */
+
+.quiz-dialog {
+  width: min(560px, 94vw);
+  max-width: 560px;
+}
+
+.quiz-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.quiz-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 8px;
+  color: var(--gold);
+}
+
+.quiz-prompt {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.quiz-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quiz-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 10px;
+  background: var(--water-1);
+  color: var(--cream);
+  border: 4px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow);
+  font-family: inherit;
+  font-size: 9px;
+  line-height: 1.7;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quiz-choice:hover:not([disabled]) {
+  background: var(--water-2);
+}
+
+.quiz-choice:focus-visible {
+  outline: 4px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.quiz-choice[disabled] {
+  cursor: default;
+  opacity: 1;
+}
+
+.quiz-choice.is-correct {
+  background: var(--plant);
+  border-color: var(--cream);
+}
+
+.quiz-choice.is-wrong {
+  background: var(--coral);
+  border-color: var(--cream);
+}
+
+.quiz-choice .quiz-key {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  background: var(--ink);
+  color: var(--gold);
+  font-size: 8px;
+}
+
+.quiz-choice .quiz-glyph {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--cream);
+}
+
+.quiz-result {
+  min-height: 16px;
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.9;
+}
+
+.quiz-result.is-correct {
+  color: var(--plant-light);
+}
+
+.quiz-result.is-wrong {
+  color: var(--coral);
+}
+
+.quiz-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.quiz-settings-form .field {
+  margin-bottom: 16px;
+}
+
+.quiz-subjects {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 4px solid var(--water-1);
+}
+
+.quiz-subjects legend {
+  padding: 0 8px;
+  font-size: 8px;
+}
+
+.quiz-subject-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 8px;
+}
+
+.quiz-subject-option input {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 480px) {
+  .quiz-choices {
+    grid-template-columns: 1fr;
+  }
+}

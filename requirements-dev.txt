@@ -1,0 +1,4 @@
+# Development-only dependencies (not needed to run the site).
+# Pillow is used solely by tools/make_placeholder_sheet.py to generate the
+# placeholder sprite sheet and background pieces.
+Pillow==13.0.0

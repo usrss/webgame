@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ form_title }} · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="panel">
+    <h1>{{ form_title }}</h1>
+
+    {% if form.non_field_errors %}
+      <ul class="errorlist">{{ form.non_field_errors }}</ul>
+    {% endif %}
+
+    <form class="pixel-form" method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {% if field.name == "code" %}
+            <input class="join-code" type="text" name="code" id="{{ field.id_for_label }}"
+                   maxlength="6" autocomplete="off" autocapitalize="characters" required
+                   value="{{ field.value|default_if_none:'' }}">
+          {% else %}
+            {{ field }}
+          {% endif %}
+          {% if field.errors %}<ul class="errorlist">{{ field.errors }}</ul>{% endif %}
+        </div>
+      {% endfor %}
+
+      <div class="actions">
+        <button type="submit" class="btn">{{ submit_label }}</button>
+        <a class="btn btn-secondary" href="{% url 'game:tank_list' %}">Back to my tanks</a>
+      </div>
+    </form>
+  </div>
+
+  {% if show_code_hint %}
+    <p class="muted">Your tank gets a 6-character join code you can share with friends.</p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ tank.name }}{% endblock %}
+
+{% block content %}
+  <div class="tank-header">
+    <h1>{{ tank.name }} settings</h1>
+    <p class="muted">Owner tools for this tank.</p>
+  </div>
+
+  <div class="settings-grid">
+    <section class="panel">
+      <h2>Join code</h2>
+      <p><span class="join-code" id="join-code-value">{{ tank.join_code }}</span></p>
+      <div class="actions">
+        <button type="button" class="btn btn-small" data-copy="#join-code-value">Copy</button>
+        <form method="post" action="{% url 'game:tank_regenerate_code' tank.pk %}"
+              data-confirm="Generate a new join code? The old code stops working immediately.">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-small btn-secondary">Regenerate code</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Members ({{ fish_list|length }} / {{ tank.capacity }})</h2>
+      <ul class="member-admin-list">
+        {% for fish in fish_list %}
+          <li data-fish-id="{{ fish.pk }}">
+            <div class="member-line">
+              <span class="fish-name">{{ fish.name }}</span>
+              <span class="muted">{{ fish.owner.username }} · Lv {{ fish.level }}</span>
+            </div>
+            <div class="member-actions">
+              <form method="post" action="{% url 'game:tank_rename_fish' tank.pk fish.pk %}" class="inline-form">
+                {% csrf_token %}
+                <input type="text" name="name" value="{{ fish.name }}" maxlength="24"
+                       aria-label="New name for {{ fish.name }}" required>
+                <button type="submit" class="btn btn-small">Rename</button>
+              </form>
+              {% if fish.owner_id != tank.owner_id %}
+                <form method="post" action="{% url 'game:tank_kick' tank.pk fish.pk %}" class="inline-form"
+                      data-confirm="Kick {{ fish.owner.username }} and ban them from this tank?"
+                      data-confirm-label="Kick">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-small btn-danger">Kick</button>
+                </form>
+              {% endif %}
+            </div>
+          </li>
+        {% empty %}
+          <li><span class="muted">No fish yet.</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>Banned players ({{ bans|length }})</h2>
+      <ul class="member-admin-list">
+        {% for ban in bans %}
+          <li>
+            <div class="member-line">
+              <span>{{ ban.user.username }}</span>
+              <span class="muted">by {{ ban.banned_by.username|default:"a moderator" }} · {{ ban.created_at|date:"Y-m-d" }}</span>
+            </div>
+            <form method="post" action="{% url 'game:tank_unban' tank.pk ban.user_id %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-small">Unban</button>
+            </form>
+          </li>
+        {% empty %}
+          <li><span class="muted">Nobody is banned.</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>Quiz questions</h2>
+      <p class="muted">
+        Players earn a feed by answering one question correctly. New questions
+        use the grade and subjects below.
+      </p>
+      <form method="post" action="{% url 'game:tank_quiz_settings' tank.pk %}"
+            class="pixel-form quiz-settings-form">
+        {% csrf_token %}
+        <div class="field">
+          <label for="quiz-grade">Grade</label>
+          <select id="quiz-grade" name="grade">
+            {% for grade in quiz_grades %}
+              <option value="{{ grade }}"{% if grade == tank.quiz_grade %} selected{% endif %}>Grade {{ grade }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <fieldset class="quiz-subjects">
+          <legend>Subjects</legend>
+          {% for key, label in quiz_subjects %}
+            <label class="quiz-subject-option">
+              <input type="checkbox" name="subjects" value="{{ key }}"{% if key in tank.quiz_subjects %} checked{% endif %}>
+              {{ label }}
+            </label>
+          {% endfor %}
+        </fieldset>
+        <div class="actions">
+          <button type="submit" class="btn btn-small">Save quiz settings</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel danger-zone">
+      <h2>Danger zone</h2>
+      <p class="muted">Deleting the tank removes every fish and ban. This cannot be undone.</p>
+      <form method="post" action="{% url 'game:tank_delete' tank.pk %}" class="pixel-form"
+            data-confirm="Delete {{ tank.name }} permanently?" data-confirm-label="Delete tank">
+        {% csrf_token %}
+        <div class="field">
+          <label for="confirm-name">Type the tank name to confirm</label>
+          <input type="text" id="confirm-name" name="confirm_name" autocomplete="off" required
+                 placeholder="{{ tank.name }}">
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-danger">Delete tank</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="actions">
+    <a class="btn btn-secondary" href="{% url 'game:tank_detail' tank.pk %}">Back to tank</a>
+  </div>
+{% endblock %}

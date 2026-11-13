@@ -1,0 +1,14 @@
+# Name filter blocklist.
+#
+# One term per line; blank lines and lines starting with "#" are ignored.
+#
+# This ships with PLACEHOLDER tokens on purpose: the repository never contains
+# real offensive words. Replace/extend these entries with the terms you actually
+# want blocked for your community before launch. Matching is case-insensitive,
+# leetspeak-aware and whitespace-insensitive (see game/validators.py).
+#
+# Whole-token matching is used for this list, so innocent words that merely
+# contain a blocked substring are allowed (the "Scunthorpe problem"). Only the
+# short SEVERE_SUBSTRINGS list in validators.py is matched as a substring.
+badword1
+badword2

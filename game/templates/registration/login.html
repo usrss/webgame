@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Log in · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="panel">
+    <h1>Log in</h1>
+    {% if form.non_field_errors %}
+      <ul class="errorlist">{{ form.non_field_errors }}</ul>
+    {% endif %}
+    <form class="pixel-form" method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<ul class="errorlist">{{ field.errors }}</ul>{% endif %}
+        </div>
+      {% endfor %}
+      <div class="actions">
+        <button type="submit" class="btn">Log in</button>
+      </div>
+    </form>
+  </div>
+  <p class="muted">No account yet? <a href="{% url 'signup' %}">Sign up</a>.</p>
+{% endblock %}

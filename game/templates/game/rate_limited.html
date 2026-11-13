@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Slow down · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="panel">
+    <h1>Too many tries</h1>
+    <p>You've made too many join attempts. Wait about {{ retry_after }} second{{ retry_after|pluralize }} and try again.</p>
+    <div class="actions">
+      <a class="btn" href="{% url 'game:tank_list' %}">Back to my tanks</a>
+    </div>
+  </div>
+{% endblock %}

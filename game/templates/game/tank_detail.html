@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ tank.name }} · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="tank-header">
+    <h1>{{ tank.name }}</h1>
+    {% if is_owner %}
+      <p class="muted">Join code — share it with friends:
+        <span class="join-code">{{ tank.join_code }}</span>
+      </p>
+    {% else %}
+      <p class="muted">Tank by {{ tank.owner.username }}</p>
+    {% endif %}
+  </div>
+
+  <div class="tank-layout">
+    <div class="tank-view">
+      <canvas id="tank-canvas"
+              width="320" height="180"
+              data-tank-id="{{ tank.pk }}"
+              data-me="{{ my_fish.pk }}"
+              data-state-url="{% url 'game:tank_state' tank.pk %}"
+              data-feed-url="{% url 'game:tank_feed' tank.pk %}"
+              data-quiz-next-url="{% url 'game:tank_quiz_next' tank.pk %}"
+              data-quiz-answer-url="{% url 'game:tank_quiz_answer' tank.pk %}"
+              data-tanks-url="{% url 'game:tank_list' %}"
+              data-sprite-base="{% static 'game/sprites/' %}"
+              aria-label="Tank view"></canvas>
+      <div class="tank-alerts">
+        <span id="reconnect-indicator" class="badge" hidden>reconnecting…</span>
+        <span id="tank-gone" class="badge badge-error" hidden>
+          You're no longer in this tank. <a href="{% url 'game:tank_list' %}">Back to my tanks</a>
+        </span>
+      </div>
+    </div>
+
+    <aside class="tank-side">
+      <section class="panel fish-panel">
+        <h2>My fish</h2>
+        <p class="my-fish-name" id="my-fish-name">{{ my_fish.name }}</p>
+        <p class="muted" id="my-fish-level">Level {{ my_fish.level }} · Stage {{ my_fish.stage }}</p>
+
+        <div class="stat">
+          <div class="stat-label"><span>XP</span><span id="xp-text">{{ my_fish.xp }}</span></div>
+          <div class="bar" id="xp-bar" role="progressbar" aria-label="Experience">
+            {% for _ in "12345678901234567890" %}<span class="seg"></span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label"><span>Hunger</span><span id="hunger-text">—</span></div>
+          <div class="bar bar-hunger" id="hunger-bar" role="progressbar" aria-label="Hunger">
+            {% for _ in "12345678901234567890" %}<span class="seg"></span>{% endfor %}
+          </div>
+        </div>
+
+        <button type="button" id="feed-button" class="btn feed-button" disabled>Feed</button>
+        <p class="muted" id="feed-hint"></p>
+
+        <form method="post" action="{% url 'game:tank_rename_me' tank.pk %}" class="rename-form">
+          {% csrf_token %}
+          <label for="rename-me">Rename your fish (once a day)</label>
+          <div class="rename-row">
+            <input type="text" id="rename-me" name="name" maxlength="24"
+                   value="{{ my_fish.name }}" autocomplete="off" required>
+            <button type="submit" class="btn btn-small">Rename</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Fish here ({{ fish_list|length }})</h2>
+        <ul class="fish-list" id="fish-list">
+          {% for fish in fish_list %}
+            <li data-fish-id="{{ fish.pk }}">
+              <span class="fish-name">{{ fish.name }}{% if fish.owner_id == user.pk %} (you){% endif %}</span>
+              <span class="fish-level">Lv {{ fish.level }}</span>
+              {% if fish.owner_id != user.pk %}
+                <form method="post" action="{% url 'game:tank_report' tank.pk fish.pk %}"
+                      class="fish-actions"
+                      data-confirm="Report {{ fish.name }} to the moderators?"
+                      data-confirm-label="Report">
+                  {% csrf_token %}
+                  <select name="reason" aria-label="Report reason">
+                    <option value="name">Offensive name</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <button type="submit" class="btn btn-small btn-secondary">Report</button>
+                </form>
+              {% endif %}
+            </li>
+          {% empty %}
+            <li data-empty="true"><span class="muted">No fish yet.</span></li>
+          {% endfor %}
+        </ul>
+      </section>
+    </aside>
+  </div>
+
+  <dialog id="quiz-dialog" class="pixel-dialog quiz-dialog" aria-labelledby="quiz-prompt">
+    <div class="quiz-body">
+      <div class="quiz-meta">
+        <span class="quiz-subject" id="quiz-subject"></span>
+        <span class="quiz-feeds" id="quiz-feeds"></span>
+      </div>
+      <h2 class="quiz-prompt" id="quiz-prompt">Loading question…</h2>
+      <div class="quiz-choices" id="quiz-choices"></div>
+      <p class="quiz-result" id="quiz-result" role="status" aria-live="polite"></p>
+      <div class="quiz-actions">
+        <button type="button" class="btn btn-secondary" id="quiz-another" hidden>
+          Another question
+        </button>
+        <button type="button" class="btn btn-secondary" id="quiz-close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <div class="actions">
+    <a class="btn btn-secondary" href="{% url 'game:tank_list' %}">Back to my tanks</a>
+    {% if is_owner %}
+      <a class="btn" href="{% url 'game:tank_settings' tank.pk %}">Tank settings</a>
+    {% else %}
+      <form method="post" action="{% url 'game:tank_leave' tank.pk %}" class="inline-form"
+            data-confirm="Leave {{ tank.name }}? Your fish will be removed."
+            data-confirm-label="Leave tank">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Leave tank</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <script type="module" src="{% static 'game/js/tank.js' %}"></script>
+{% endblock %}

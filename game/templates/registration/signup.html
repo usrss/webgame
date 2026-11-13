@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sign up · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="panel">
+    <h1>Sign up</h1>
+    {% if form.non_field_errors %}
+      <ul class="errorlist">{{ form.non_field_errors }}</ul>
+    {% endif %}
+    <form class="pixel-form" method="post" action="{% url 'signup' %}">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{{ field.errors }}</ul>{% endif %}
+        </div>
+      {% endfor %}
+      <div class="actions">
+        <button type="submit" class="btn">Create account</button>
+      </div>
+    </form>
+  </div>
+  <p class="muted">Already have an account? <a href="{% url 'login' %}">Log in</a>.</p>
+{% endblock %}

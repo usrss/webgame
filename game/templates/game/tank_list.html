@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}My tanks · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <h1>My tanks</h1>
+
+  {% if rows %}
+    <ul class="tank-list">
+      {% for row in rows %}
+        <li class="tank-card">
+          <div>
+            <h3><a href="{% url 'game:tank_detail' row.tank.pk %}">{{ row.tank.name }}</a></h3>
+            <div class="meta">
+              {{ row.member_count }} / {{ row.tank.capacity }} fish ·
+              {{ row.fish.name }} (level {{ row.fish.level }})
+            </div>
+          </div>
+          <a class="btn btn-small" href="{% url 'game:tank_detail' row.tank.pk %}">Enter tank</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="panel">
+      <p>You're not in any tank yet.</p>
+      <p class="muted">Create your own tank, or join a friend's with a 6-character code.</p>
+    </div>
+  {% endif %}
+
+  <div class="actions">
+    <a class="btn" href="{% url 'game:tank_create' %}">Create tank</a>
+    <a class="btn btn-secondary" href="{% url 'game:tank_join' %}">Join tank</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{
+  "name": "aquarium-16",
+  "source": "Custom 16-colour palette, values mirrored as CSS variables in game/static/game/css/pixel.css",
+  "colors": [
+    "#0b1020",
+    "#14213d",
+    "#1d3b5c",
+    "#2a5d7e",
+    "#3a8496",
+    "#6cb8b0",
+    "#9fb3c8",
+    "#f6f2e6",
+    "#ffffff",
+    "#c2a25a",
+    "#8a6f34",
+    "#3f7d3a",
+    "#6cae4e",
+    "#d0616a",
+    "#e08a3c",
+    "#f2c14e"
+  ]
+}
