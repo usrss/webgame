@@ -68,7 +68,6 @@ class AnswerResult:
 
     attempt: QuestionAttempt
     correct: bool
-    correct_index: int
     explanation: str
     remaining_today: int
     feed: FeedResult | None = None
@@ -260,11 +259,13 @@ def answer_question(
         if correct:
             feed_result = feed(fish, now=now, enforce_cooldown=False)
 
+        # Deliberately no correct index in the result: the answer is never sent
+        # to the client, not even for a wrong attempt (players could otherwise
+        # answer wrong on purpose to harvest the key).
         return AnswerResult(
             attempt=attempt,
             correct=correct,
-            correct_index=attempt.correct_index,
-            explanation=attempt.explanation,
+            explanation=attempt.explanation if correct else "",
             remaining_today=max(0, remaining - (1 if correct else 0)),
             feed=feed_result,
         )

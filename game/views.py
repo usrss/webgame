@@ -434,9 +434,10 @@ def _json_body(request):
     """Parse a JSON body, falling back to the form body (never raising)."""
     if request.content_type and "json" in request.content_type:
         try:
-            return json.loads(request.body or b"{}")
+            payload = json.loads(request.body or b"{}")
         except (TypeError, ValueError):
             return {}
+        return payload if isinstance(payload, dict) else {}
     return request.POST
 
 
@@ -524,11 +525,13 @@ def tank_quiz_answer(request, tank_id):
             status=429,
         )
 
+    # No correct answer, and no explanation on a wrong attempt: a player must
+    # not be able to learn the key by answering wrong on purpose.
     payload = {
         "correct": result.correct,
-        "correct_index": result.correct_index,
         "explanation": result.explanation,
         "remaining_today": result.remaining_today,
+        "cap": settings.GAME_SETTINGS["QUIZ_DAILY_CORRECT_CAP"],
         "server_time": _iso_z(now),
         "feed": None,
     }

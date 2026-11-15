@@ -1,0 +1,73 @@
+grade,subject,prompt,choice1,choice2,choice3,choice4,correct_index,explanation
+1,spelling,Which is the correct spelling for a small pet that says meow?,catt,kat,cat,caat,2,Cat is spelled c-a-t.
+1,spelling,Which is the correct spelling for a pet that barks?,dogg,doog,dawg,dog,3,Dog is spelled d-o-g.
+1,spelling,Which word begins with the letter b?,map,cat,sun,ball,3,Ball starts with the letter b.
+1,reading,Read: The cat sat on the mat. Where did the cat sit?,on a bed,on a log,in a box,on the mat,3,The sentence says the cat sat on the mat.
+1,reading,Read: Sam has a red ball. What color is the ball?,blue,yellow,green,red,3,The sentence says Sam has a red ball.
+1,reading,Read: The sun is hot. What is hot?,the moon,the ice,the sun,the rain,2,The sentence says the sun is hot.
+1,science,Which animal has feathers?,a dog,a fish,a bird,a cat,2,"Birds have feathers; dogs, fish and cats do not."
+1,science,What do plants need to grow?,plastic and glass,water and sunlight,only darkness,candy and juice,1,Plants need water and sunlight to grow.
+1,science,How many legs does a dog have?,4,8,6,2,0,Dogs have four legs.
+1,general,How many days are in a week?,5,7,12,10,1,A week has seven days.
+1,general,What color is the sky on a clear day?,blue,purple,black,green,0,A clear daytime sky looks blue.
+1,general,Which one is a fruit?,a potato,an apple,bread,a carrot,1,An apple is a fruit; carrots and potatoes are vegetables.
+2,spelling,Which is the correct spelling for the building a family lives in?,housse,hous,howse,house,3,House is spelled h-o-u-s-e.
+2,spelling,Which is the correct spelling for a person you like and play with?,frend,freind,friend,friennd,2,Friend is spelled f-r-i-e-n-d.
+2,spelling,Which word rhymes with light?,night,late,leaf,lot,0,Light and night both end with the -ight sound.
+2,reading,Read: Ben ran to the park. He played on the slide. Where did Ben play?,on the swings,on the grass,in the sand,on the slide,3,The sentence says Ben played on the slide.
+2,reading,Read: The puppy is small and brown. What color is the puppy?,brown,black,white,gray,0,The sentence says the puppy is brown.
+2,reading,"Read: Mia lost her hat, so she looked under the bed. What did Mia lose?",her hat,her book,her ball,her shoe,0,Mia lost her hat.
+2,science,What do we call frozen water?,sand,smoke,ice,steam,2,Water turns into ice when it freezes.
+2,science,Which part of a plant takes in water from the soil?,the leaf,the stem,the roots,the flower,2,Roots take in water from the soil.
+2,science,What do we breathe to stay alive?,air,wood,milk,sand,0,People and animals need air to breathe.
+2,general,How many months are in a year?,12,10,11,24,0,A year has twelve months.
+2,general,Which pet says meow?,a cat,a duck,a dog,a cow,0,Cats say meow.
+2,general,What do we use to tell the time?,a clock,a spoon,a chair,a pencil,0,A clock shows the time.
+3,spelling,Which is the correct spelling of the word meaning 'for this reason'?,becaus,becuase,because,beacause,2,Because is spelled b-e-c-a-u-s-e.
+3,spelling,Which is the correct spelling of the word meaning 'very pretty'?,butiful,beautifull,beatiful,beautiful,3,Beautiful is spelled b-e-a-u-t-i-f-u-l.
+3,spelling,Which word means the opposite of early?,fast,quick,soon,late,3,Early and late are opposites.
+3,reading,Read: The tide came in and washed away the sandcastle. What washed it away?,a dog,a boat,the wind,the tide,3,The sentence says the tide washed it away.
+3,reading,"Read: Lena packed a sandwich, an apple and water for the hike. What did she pack to drink?",juice,tea,water,milk,2,Lena packed water to drink.
+3,reading,Read: The old bridge creaked when the wind blew. What made the bridge creak?,a truck,the wind,the rain,the snow,1,The wind made the old bridge creak.
+3,science,Which planet do we live on?,Earth,Jupiter,Mars,Venus,0,People live on Earth.
+3,science,What happens to water when it freezes?,it becomes solid,it disappears,it turns into sand,it becomes gas,0,Freezing turns liquid water into solid ice.
+3,science,Which of these is a source of light?,a rock,a mirror,a book,the Sun,3,The Sun gives off its own light; a mirror only reflects it.
+3,general,How many sides does a triangle have?,4,5,3,6,2,A triangle has three sides.
+3,general,Which season comes right after winter?,winter,autumn,summer,spring,3,Spring follows winter.
+3,general,What is the largest ocean on Earth?,the Atlantic Ocean,the Arctic Ocean,the Pacific Ocean,the Indian Ocean,2,The Pacific is the largest ocean.
+4,spelling,Which is the correct spelling of the word meaning 'apart from each other'?,separete,seperate,seperete,separate,3,Separate is spelled s-e-p-a-r-a-t-e.
+4,spelling,Which is the correct spelling of the word meaning 'needed'?,neccessary,necessary,necessery,necesary,1,Necessary is spelled n-e-c-e-s-s-a-r-y.
+4,spelling,Which word means almost the same as quick?,quiet,heavy,slow,fast,3,Fast and quick mean almost the same thing.
+4,reading,"Read: Although it rained, the team finished the game. Did the team finish?","No, the game was cancelled","Yes, they finished in the rain","No, they stopped at halftime",The story does not say,1,"Although it rained, the team still finished."
+4,reading,"Read: The museum keeps its oldest painting in a cool, dark room. Why?",to protect the painting,to hide it from visitors,to save money on lamps,to make the room feel old,0,"Cool, dark storage helps protect old paintings."
+4,reading,Read: Jordan reread the instructions twice before starting. What does reread mean?,stop reading,read faster,read aloud,read again,3,The prefix re- means again.
+4,science,What force pulls objects toward Earth?,friction,gravity,electricity,magnetism,1,Gravity pulls objects toward Earth.
+4,science,Which state of matter has a fixed shape?,liquid,solid,gas,steam,1,Solids keep their own shape.
+4,science,What do we call animals that eat only plants?,insects,carnivores,omnivores,herbivores,3,Herbivores eat only plants.
+4,general,How many continents are there on Earth?,6,7,8,5,1,There are seven continents.
+4,general,Which country is home to the Great Wall?,China,Japan,India,Egypt,0,The Great Wall is in China.
+4,general,"At sea level, at what temperature does water boil?",50 degrees Celsius,100 degrees Celsius,200 degrees Celsius,0 degrees Celsius,1,Water boils at 100 degrees Celsius at sea level.
+5,spelling,Which is the correct spelling of the word meaning 'for sure'?,definitely,definetely,definately,definitly,0,Definitely is spelled d-e-f-i-n-i-t-e-l-y.
+5,spelling,Which is the correct spelling of the word meaning 'to make room for'?,accommodait,acommodate,accommodate,accomodate,2,Accommodate has two c's and two m's.
+5,spelling,What is the plural of child?,child,childs,children,childes,2,The irregular plural of child is children.
+5,reading,Read: The letter was postmarked in June but arrived in September. How long did it take?,about three months,about three weeks,about a year,about three days,0,June to September is about three months.
+5,reading,"Read: Nadia's essay was concise, so it fit on one page. What does concise mean?",short and clear,long and detailed,confusing and vague,funny and loud,0,Concise means brief and to the point.
+5,reading,"Read: The trail narrowed, and the hikers walked single file. Why single file?",the trail was narrow,they were lost,they were racing,it was night,0,A narrow trail only fits one person at a time.
+5,science,What is the main source of energy for Earth's weather?,volcanoes,the Sun,the oceans,the Moon,1,The Sun heats the air and water that drive weather.
+5,science,Which organ pumps blood around the body?,the brain,the heart,the stomach,the lungs,1,The heart pumps blood.
+5,science,Water vapor turning into liquid water is called what?,condensation,evaporation,freezing,precipitation,0,Condensation is gas turning into liquid.
+5,general,Who wrote the play Romeo and Juliet?,Jane Austen,William Shakespeare,Charles Dickens,Mark Twain,1,Shakespeare wrote Romeo and Juliet.
+5,general,What is the capital of France?,Madrid,Rome,Paris,Lyon,2,Paris is the capital of France.
+5,general,How many minutes are in two hours?,100,60,120,150,2,Two hours have 60 + 60 = 120 minutes.
+6,spelling,Which is the correct spelling of the word meaning 'an event that happens'?,occurrance,occurrence,occurence,ocurrence,1,Occurrence has two c's and two r's.
+6,spelling,Which is the correct spelling of the word meaning 'a beat in music'?,rhythm,rythm,rythym,rhythym,0,Rhythm is spelled r-h-y-t-h-m.
+6,spelling,Which is the correct spelling of the word meaning 'not controlled by others'?,independent,independant,independend,indipendent,0,"Independent ends in -ent, not -ant."
+6,reading,Read: The author calls the empty town 'a clock with no hands.' What does this suggest?,the town is brand new,clocks are expensive,time has stopped there,the town is very loud,2,"A clock with no hands cannot show time, so time feels frozen."
+6,reading,Read: The report cites three studies but draws no conclusion. What does the report do?,proves one answer,presents evidence without a verdict,asks readers to vote,ignores all research,1,Citing studies without a conclusion leaves the question open.
+6,reading,"Read: Ravi said, 'Great, another flat tire.' How does Ravi most likely feel?",delighted,proud,frustrated,sleepy,2,The word great is used sarcastically here.
+6,science,Which process do plants use to make food from sunlight?,digestion,condensation,respiration,photosynthesis,3,Photosynthesis turns sunlight into food for plants.
+6,science,What is the chemical formula for water?,CO2,NaCl,O2,H2O,3,A water molecule has two hydrogen atoms and one oxygen atom.
+6,science,Which planet is closest to the Sun?,Mars,Earth,Venus,Mercury,3,Mercury is the closest planet to the Sun.
+6,general,What is the longest river in Africa?,the Nile,the Congo,the Zambezi,the Niger,0,The Nile is the longest river in Africa.
+6,general,In which year did World War II end?,1918,1939,1945,1950,2,World War II ended in 1945.
+6,general,Which gas makes up most of Earth's atmosphere?,oxygen,carbon dioxide,hydrogen,nitrogen,3,Nitrogen is about 78% of the atmosphere.

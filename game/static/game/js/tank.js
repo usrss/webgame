@@ -11,6 +11,7 @@ import { ApiError, feed, fetchState } from "./api.js";
 import { Background } from "./background.js";
 import { EffectLayer } from "./effects.js";
 import { FishSprite } from "./fishSprite.js";
+import { initQuiz } from "./quiz.js";
 import { initSprites, preload } from "./sprites.js";
 import * as ui from "./ui.js";
 
@@ -24,6 +25,8 @@ context.imageSmoothingEnabled = false;
 
 const stateUrl = canvas.dataset.stateUrl;
 const feedUrl = canvas.dataset.feedUrl;
+const quizNextUrl = canvas.dataset.quizNextUrl;
+const quizAnswerUrl = canvas.dataset.quizAnswerUrl;
 const myFishId = Number(canvas.dataset.me);
 const spriteBase = canvas.dataset.spriteBase || "/static/game/sprites/";
 
@@ -49,6 +52,15 @@ let serverOffsetMs = 0;
 let cooldownEndsAt = 0;
 
 ui.initUI();
+
+const quiz = initQuiz({
+  nextUrl: quizNextUrl,
+  answerUrl: quizAnswerUrl,
+  onFeed: (feedResult, serverTime) => {
+    applyFeedResult(feedResult, serverTime);
+    tick();
+  },
+});
 
 /* ---------------------------------------------------------------- drawing */
 
@@ -157,6 +169,9 @@ function applyState(payload) {
     ui.renderMyFish(myFish);
     syncCooldown(myFish.cooldown_remaining, payload.server_time);
   }
+  if (payload.quiz) {
+    quiz.setState(payload.quiz);
+  }
   ui.renderMembers(payload.fish, payload.me.fish_id);
 }
 
@@ -229,6 +244,18 @@ function tick() {
   if (stopped) {
     return;
   }
+  if (quiz.enabled && quiz.onlyFeeding) {
+    const left = quiz.remaining;
+    ui.setFeedState({
+      enabled: left > 0 && !feeding,
+      label: left > 0 ? "Answer & feed" : "No feeds left",
+      hint:
+        left > 0
+          ? `${left} ${left === 1 ? "feed" : "feeds"} left today`
+          : "New feeds arrive after midnight",
+    });
+    return;
+  }
   const secondsLeft = (cooldownEndsAt - Date.now()) / 1000;
   if (secondsLeft > 0) {
     ui.setFeedState({
@@ -245,8 +272,42 @@ function tick() {
   });
 }
 
+/** Apply a feed result from either endpoint (timed feed or quiz answer). */
+function applyFeedResult(result, serverTime) {
+  const fish = result.fish;
+  const sprite = sprites.get(fish.id);
+  const now = performance.now();
+
+  if (sprite) {
+    sprite.setStats(fish);
+    if (result.evolved) {
+      triggerEvolution(sprite, result.old_stage, result.new_stage);
+    } else if (result.leveled_up) {
+      effects.addLevelUp(sprite, now);
+      ui.toast(`Level up! Level ${fish.level}`, "toast-success");
+    }
+  }
+  knownStages.set(fish.id, fish.stage);
+
+  ui.renderMyFish(fish);
+  syncCooldown(fish.cooldown_remaining, serverTime || result.server_time);
+
+  if (result.xp_gained > 0) {
+    ui.toast(`+${result.xp_gained} XP`);
+  } else if (!result.leveled_up) {
+    ui.toast("Already at max level");
+  }
+
+  // Refresh immediately so other players' updates arrive without waiting.
+  schedulePoll(0);
+}
+
 async function onFeed() {
   if (feeding || stopped) {
+    return;
+  }
+  if (quiz.enabled && quiz.onlyFeeding) {
+    quiz.open();
     return;
   }
   feeding = true;
@@ -254,32 +315,7 @@ async function onFeed() {
 
   try {
     const result = await feed(feedUrl);
-    const fish = result.fish;
-    const sprite = sprites.get(fish.id);
-    const now = performance.now();
-
-    if (sprite) {
-      sprite.setStats(fish);
-      if (result.evolved) {
-        triggerEvolution(sprite, result.old_stage, result.new_stage);
-      } else if (result.leveled_up) {
-        effects.addLevelUp(sprite, now);
-        ui.toast(`Level up! Level ${fish.level}`, "toast-success");
-      }
-    }
-    knownStages.set(fish.id, fish.stage);
-
-    ui.renderMyFish(fish);
-    syncCooldown(fish.cooldown_remaining, result.server_time);
-
-    if (result.xp_gained > 0) {
-      ui.toast(`+${result.xp_gained} XP`);
-    } else if (!result.leveled_up) {
-      ui.toast("Already at max level");
-    }
-
-    // Refresh immediately so other players' updates arrive without waiting.
-    schedulePoll(0);
+    applyFeedResult(result);
   } catch (error) {
     if (error instanceof ApiError && error.status === 429) {
       const remaining = Number(error.data?.seconds_remaining ?? 0);

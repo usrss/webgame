@@ -1,8 +1,9 @@
 """Tests for the Phase 3 JSON endpoints and the live tank page wiring."""
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
@@ -131,9 +132,14 @@ class StateEndpointTests(TestCase):
 
         self.assertEqual(len(response.json()["fish"]), 11)
         self.assertEqual(len(baseline), len(with_many))
-        self.assertLessEqual(len(with_many), 5)
+        # Phase 7 adds one fixed query for the quiz block (daily count).
+        self.assertLessEqual(len(with_many), 6)
 
 
+# Phase 7 defaults to quiz-only feeding, so these Phase 1-5 tests pin it off.
+@override_settings(
+    GAME_SETTINGS={**settings.GAME_SETTINGS, "QUIZ_ONLY_FEEDING": False}
+)
 class FeedEndpointTests(TestCase):
     def setUp(self):
         self.owner = make_user()

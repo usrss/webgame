@@ -46,6 +46,28 @@ export async function fetchState(url) {
   return data;
 }
 
+export async function postJson(url, body = null) {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken(),
+  };
+  if (body !== null) {
+    headers["Content-Type"] = "application/json";
+  }
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "same-origin",
+    cache: "no-store",
+    headers,
+    body: body === null ? undefined : JSON.stringify(body),
+  });
+  const data = await readJson(response);
+  if (!response.ok) {
+    throw new ApiError(response.status, data);
+  }
+  return data;
+}
+
 export async function feed(url) {
   const response = await fetch(url, {
     method: "POST",
