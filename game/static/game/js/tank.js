@@ -11,9 +11,11 @@ import { ApiError, feed, fetchState } from "./api.js";
 import { Background } from "./background.js";
 import { EffectLayer } from "./effects.js";
 import { FishSprite } from "./fishSprite.js";
+import { loadArtData } from "./fishRenderer.js";
 import { initQuiz } from "./quiz.js";
-import { initSprites, preload } from "./sprites.js";
+import { preload } from "./sprites.js";
 import * as ui from "./ui.js";
+import { initWardrobe } from "./wardrobe.js";
 
 const POLL_MS = 7000;
 const BACKOFF_MS = 15000;
@@ -29,12 +31,12 @@ const quizNextUrl = canvas.dataset.quizNextUrl;
 const quizAnswerUrl = canvas.dataset.quizAnswerUrl;
 const myFishId = Number(canvas.dataset.me);
 const spriteBase = canvas.dataset.spriteBase || "/static/game/sprites/";
+const artBase = canvas.dataset.artBase || "/static/game/data/";
 
 const prefersReducedMotion =
   typeof window.matchMedia === "function" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-initSprites(spriteBase);
 const background = new Background();
 const effects = new EffectLayer({ reducedMotion: prefersReducedMotion });
 
@@ -60,6 +62,16 @@ const quiz = initQuiz({
     applyFeedResult(feedResult, serverTime);
     tick();
   },
+});
+
+const wardrobe = initWardrobe({
+  stateUrl: canvas.dataset.wardrobeStateUrl,
+  equipUrl: canvas.dataset.wardrobeEquipUrl,
+  buyUrl: canvas.dataset.wardrobeBuyUrl,
+});
+
+document.getElementById("wardrobe-button")?.addEventListener("click", () => {
+  wardrobe.open();
 });
 
 /* ---------------------------------------------------------------- drawing */
@@ -298,6 +310,15 @@ function applyFeedResult(result, serverTime) {
     ui.toast("Already at max level");
   }
 
+  if (result.pearls_gained > 0) {
+    ui.toast(`+${result.pearls_gained} pearls`, "toast-success");
+  }
+  for (const gift of result.gifts || []) {
+    ui.toast(`You got the ${gift.name}!`, "toast-success", () =>
+      wardrobe.open(gift.slot, gift.key)
+    );
+  }
+
   // Refresh immediately so other players' updates arrive without waiting.
   schedulePoll(0);
 }
@@ -356,7 +377,7 @@ function waitForFont() {
 }
 
 async function bootstrap() {
-  const result = await preload();
+  const [result] = await Promise.all([preload(spriteBase), loadArtData(artBase)]);
   assetsFailed = result.failed.length > 0;
   if (assetsFailed) {
     console.warn("Some sprites failed to load:", result.failed.join(", "));

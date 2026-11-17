@@ -135,6 +135,9 @@ def quiz_state(tank: Tank, fish: Fish, now: datetime | None = None) -> dict:
         "cap": settings.GAME_SETTINGS["QUIZ_DAILY_CORRECT_CAP"],
         "grade": tank.quiz_grade,
         "subjects": list(tank.quiz_subjects or []),
+        "source": tank.quiz_source,
+        "set_name": tank.quiz_set.name if tank.quiz_source == "custom" and tank.quiz_set else "",
+        "difficulty_mode": tank.quiz_difficulty_mode,
     }
 
 
@@ -186,7 +189,7 @@ def issue_question(user, tank: Tank, now: datetime | None = None) -> QuestionAtt
         if elapsed < minimum_gap:
             raise IssueTooFast(max(1, math.ceil(minimum_gap - elapsed)))
 
-    picked = pick_question(user, tank)
+    picked = pick_question(user, tank, fish=fish)
     return QuestionAttempt.objects.create(
         user=user,
         fish=fish,
@@ -197,6 +200,8 @@ def issue_question(user, tank: Tank, now: datetime | None = None) -> QuestionAtt
         choices=picked.choices,
         correct_index=picked.correct_index,
         explanation=picked.explanation,
+        difficulty=picked.difficulty,
+        quiz_set_name=picked.quiz_set_name,
         issued_at=now,
     )
 

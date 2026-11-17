@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Art debug · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="tank-header">
+    <h1>Art debug</h1>
+    <p class="muted">
+      Staff-only. Every species, stage and accessory combination, drawn with the
+      real renderer. Use the slot tabs and the facing toggle to inspect placement.
+    </p>
+  </div>
+
+  <section class="panel">
+    <div class="actions">
+      <div class="wardrobe-tabs" id="art-slots" role="tablist" aria-label="Accessory slots"></div>
+      <label class="quiz-subject-option">
+        <input type="checkbox" id="art-facing"> Face left
+      </label>
+      <button type="button" class="btn btn-small btn-secondary" id="art-redraw">Redraw</button>
+    </div>
+    <p class="muted" id="art-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <div id="art-grid" class="art-grid" data-art-base="{% static 'game/data/' %}"></div>
+
+  <script id="art-species" type="application/json">{{ species_json|safe }}</script>
+  <script type="module" src="{% static 'game/js/art_debug.js' %}"></script>
+{% endblock %}

@@ -8,7 +8,7 @@ Views and model ``save()`` call into this module; nothing else mutates ``xp``,
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -18,11 +18,18 @@ from django.utils import timezone
 
 from .models import (
     JOIN_CODE_MAX_ATTEMPTS,
+    SLOT_KEYS,
+    Accessory,
     EvolutionStage,
     Fish,
     FishReport,
+    FishSpecies,
+    PlayerProfile,
+    PearlTransaction,
     Tank,
     TankBan,
+    UserAccessory,
+    FishEquipment,
     generate_join_code,
 )
 from .validators import validate_display_name
@@ -66,6 +73,38 @@ class CannotRenameYet(Exception):
         )
 
 
+class InvalidSpecies(Exception):
+    """The requested species does not exist or is not active."""
+
+
+class NotForSale(Exception):
+    """Only active shop accessories can be bought with pearls."""
+
+
+class AlreadyOwned(Exception):
+    """The user already owns this accessory."""
+
+
+class NotEnoughPearls(Exception):
+    """The purchase (or deduction) would make the balance negative."""
+
+    def __init__(self, missing: int) -> None:
+        self.missing = missing
+        super().__init__(f"{missing} more pearl(s) needed")
+
+
+class AccessoryNotFound(Exception):
+    """No such accessory, or it is not active."""
+
+
+class NotOwned(Exception):
+    """The user does not own the accessory they tried to equip."""
+
+
+class InvalidSlot(Exception):
+    """The accessory does not belong in the requested slot."""
+
+
 class AlreadyReported(Exception):
     """This user already reported this fish."""
 
@@ -90,9 +129,22 @@ class FeedResult:
     old_stage: int
     new_stage: int
     cooldown_seconds: int
+    pearls_gained: int = 0
+    gifts: list = field(default_factory=list)  # newly granted Accessory rows
 
 
-def create_tank(owner, tank_name: str, fish_name: str) -> tuple[Tank, Fish]:
+def get_species(key: str | None) -> FishSpecies:
+    """Resolve an active species key; ``None``/empty means goldfish."""
+    key = (key or "goldfish").strip().lower()
+    species = FishSpecies.objects.filter(key=key, active=True).first()
+    if species is None:
+        raise InvalidSpecies("Pick one of the available fish species.")
+    return species
+
+
+def create_tank(
+    owner, tank_name: str, fish_name: str, species: str | None = "goldfish"
+) -> tuple[Tank, Fish]:
     """Create a tank and the owner's first fish in one transaction.
 
     Both names go through :func:`validate_display_name`, so callers may pass raw
@@ -106,6 +158,7 @@ def create_tank(owner, tank_name: str, fish_name: str) -> tuple[Tank, Fish]:
     fish_name = validate_display_name(
         fish_name, max_length=Fish._meta.get_field("name").max_length, field_label="Fish name"
     )
+    species_row = get_species(species)
 
     with transaction.atomic():
         tank = Tank.objects.create(
@@ -116,6 +169,7 @@ def create_tank(owner, tank_name: str, fish_name: str) -> tuple[Tank, Fish]:
         fish = Fish.objects.create(
             owner=owner,
             tank=tank,
+            species=species_row,
             name=fish_name,
             level=1,
             stage=0,
@@ -123,7 +177,9 @@ def create_tank(owner, tank_name: str, fish_name: str) -> tuple[Tank, Fish]:
     return tank, fish
 
 
-def join_tank(user, code: str, fish_name: str) -> tuple[Tank, Fish]:
+def join_tank(
+    user, code: str, fish_name: str, species: str | None = "goldfish"
+) -> tuple[Tank, Fish]:
     """Join an existing tank by join code, creating the user's fish.
 
     The code is normalized (trimmed, upper-cased). Everything happens inside a
@@ -139,6 +195,7 @@ def join_tank(user, code: str, fish_name: str) -> tuple[Tank, Fish]:
     fish_name = validate_display_name(
         fish_name, max_length=Fish._meta.get_field("name").max_length, field_label="Fish name"
     )
+    species_row = get_species(species)
 
     with transaction.atomic():
         tank = (
@@ -158,7 +215,14 @@ def join_tank(user, code: str, fish_name: str) -> tuple[Tank, Fish]:
         if tank.fish.count() >= tank.capacity:
             raise TankFull("That tank is full.")
 
-        fish = Fish.objects.create(owner=user, tank=tank, name=fish_name, level=1, stage=0)
+        fish = Fish.objects.create(
+            owner=user,
+            tank=tank,
+            species=species_row,
+            name=fish_name,
+            level=1,
+            stage=0,
+        )
     return tank, fish
 
 
@@ -312,6 +376,118 @@ def report_fish(fish: Fish, reporter, reason: str = FishReport.REASON_NAME, note
     return report
 
 
+# --------------------------------------------------------------- wardrobe
+
+
+def get_profile(user) -> PlayerProfile:
+    """Return the user's profile, creating it and granting starters on first use."""
+    with transaction.atomic():
+        profile, created = PlayerProfile.objects.get_or_create(user=user)
+        if created:
+            starter_ids = list(
+                Accessory.objects.filter(unlock_type="starter", active=True).values_list(
+                    "pk", flat=True
+                )
+            )
+            UserAccessory.objects.bulk_create(
+                [
+                    UserAccessory(user=user, accessory_id=accessory_id)
+                    for accessory_id in starter_ids
+                ],
+                ignore_conflicts=True,
+            )
+    return profile
+
+
+def award_pearls(user, amount: int, reason: str) -> PlayerProfile:
+    """Change a balance atomically and write exactly one audit row."""
+    amount = int(amount)
+    with transaction.atomic():
+        get_profile(user)
+        profile = PlayerProfile.objects.select_for_update().get(user=user)
+        if amount < 0 and profile.pearls + amount < 0:
+            raise NotEnoughPearls(abs(amount) - profile.pearls)
+        if amount:
+            profile.pearls = profile.pearls + amount
+            profile.save(update_fields=["pearls"])
+            PearlTransaction.objects.create(user=user, amount=amount, reason=reason)
+    return profile
+
+
+def buy_accessory(user, accessory_key: str) -> UserAccessory:
+    """Buy one active shop item with pearls; price comes from the database."""
+    key = (accessory_key or "").strip().lower()
+    accessory = Accessory.objects.filter(key=key, active=True).first()
+    if accessory is None or accessory.unlock_type != "shop" or accessory.price < 1:
+        raise NotForSale("That item is not for sale.")
+
+    get_profile(user)
+    with transaction.atomic():
+        profile = PlayerProfile.objects.select_for_update().get(user=user)
+        if UserAccessory.objects.filter(user=user, accessory=accessory).exists():
+            raise AlreadyOwned("You already own that item.")
+        if profile.pearls < accessory.price:
+            raise NotEnoughPearls(accessory.price - profile.pearls)
+
+        profile.pearls -= accessory.price
+        profile.save(update_fields=["pearls"])
+        owned = UserAccessory.objects.create(user=user, accessory=accessory)
+        PearlTransaction.objects.create(
+            user=user, amount=-accessory.price, reason="purchase"
+        )
+    return owned
+
+
+def equip(user, fish: Fish, slot: str, accessory_key: str | None) -> Accessory | None:
+    """Equip one owned item in one slot, or unequip when the key is ``None``."""
+    if slot not in SLOT_KEYS:
+        raise InvalidSlot("Pick Head, Face, Body or Tail.")
+
+    with transaction.atomic():
+        locked = (
+            Fish.objects.select_for_update()
+            .filter(pk=fish.pk, owner=user)
+            .first()
+        )
+        if locked is None:
+            raise PermissionDenied("That is not your fish.")
+
+        if accessory_key in (None, ""):
+            FishEquipment.objects.filter(fish=locked, slot=slot).delete()
+            return None
+
+        key = str(accessory_key).strip().lower()
+        accessory = Accessory.objects.filter(key=key, active=True).first()
+        if accessory is None:
+            raise AccessoryNotFound("That item does not exist.")
+        if accessory.slot != slot:
+            raise InvalidSlot(f"{accessory.name} goes in the {accessory.get_slot_display()} slot.")
+        if not UserAccessory.objects.filter(user=user, accessory=accessory).exists():
+            raise NotOwned("You do not own that item yet.")
+
+        FishEquipment.objects.update_or_create(
+            fish=locked, slot=slot, defaults={"accessory": accessory}
+        )
+    return accessory
+
+
+def grant_evolution_gifts(user, new_stage: int) -> list:
+    """Grant every evolution gift up to *new_stage* once per account."""
+    gifts = Accessory.objects.filter(
+        active=True,
+        unlock_type="evolution",
+        unlock_stage__lte=new_stage,
+    ).order_by("unlock_stage")
+    granted = []
+    for accessory in gifts:
+        _owned, created = UserAccessory.objects.get_or_create(
+            user=user, accessory=accessory
+        )
+        if created:
+            granted.append(accessory)
+    return granted
+
+
 def xp_to_next_level(level: int) -> int:
     """Return the XP needed to go from *level* to *level + 1* (``50 * level``)."""
     return _XP_PER_LEVEL_STEP * level
@@ -407,13 +583,30 @@ def feed(
     fish.last_fed_at = now
     fish.save()
 
+    evolved = fish.stage != old_stage
+    gifts = grant_evolution_gifts(fish.owner, fish.stage) if evolved else []
+
+    config = settings.GAME_SETTINGS
+    pearls_gained = 0
+    per_feed = int(config["PEARLS_PER_FEED"])
+    if per_feed:
+        award_pearls(fish.owner, per_feed, "feed")
+        pearls_gained += per_feed
+    if evolved:
+        bonus = int(config["PEARLS_EVOLUTION_BONUS"])
+        if bonus:
+            award_pearls(fish.owner, bonus, "evolution")
+            pearls_gained += bonus
+
     return FeedResult(
         fish=fish,
         xp_gained=xp_gained,
         leveled_up=levels_gained > 0,
         levels_gained=levels_gained,
-        evolved=fish.stage != old_stage,
+        evolved=evolved,
         old_stage=old_stage,
         new_stage=fish.stage,
         cooldown_seconds=_FEED_COOLDOWN_SECONDS,
+        pearls_gained=pearls_gained,
+        gifts=gifts,
     )

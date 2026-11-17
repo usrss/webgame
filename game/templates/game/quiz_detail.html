@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ quiz_set.name }} · Quiz{% endblock %}
+
+{% block content %}
+  <div class="tank-header">
+    <h1>{{ quiz_set.name }}</h1>
+    <p class="muted">
+      <span class="badge badge-{{ quiz_set.status }}">{{ quiz_set.get_status_display }}</span>
+      · {{ total }} item{{ total|pluralize }} · uploaded {{ quiz_set.created_at|date:"Y-m-d" }}
+      {% if quiz_set.source_format %}· {{ quiz_set.source_format|upper }}{% endif %}
+    </p>
+    {% if tanks %}
+      <p class="muted">Used by: {% for tank in tanks %}{{ tank.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+  </div>
+
+  {% if errors %}
+    <section class="panel">
+      <h2>Skipped items ({{ errors|length }})</h2>
+      <p class="muted">These items were not imported. The rest are below.</p>
+      <ul class="error-list">
+        {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {% if warnings or encoding %}
+    <section class="panel">
+      <h2>Warnings{% if warnings %} ({{ warnings|length }}){% endif %}</h2>
+      {% if encoding %}
+        <p class="muted">The file was read as {{ encoding }}.</p>
+      {% endif %}
+      <ul class="warning-list">
+        {% for warning in warnings %}<li>{{ warning }}</li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <section class="panel">
+    <h2>Difficulty bands</h2>
+    <p class="muted">
+      Bands use the item numbers from your file. Items outside every band are
+      never used. Each band needs at least {{ warn_size }} questions to give
+      players variety.
+    </p>
+    <form method="post" action="{% url 'game:quiz_set_bands' quiz_set.pk %}"
+          class="pixel-form" data-warn-size="{{ warn_size }}">
+      {% csrf_token %}
+      <div class="table-scroll">
+        <table class="data-table band-editor">
+          <thead>
+            <tr>
+              <th scope="col">Difficulty</th>
+              <th scope="col">From item</th>
+              <th scope="col">To item</th>
+              <th scope="col">Questions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in editor %}
+              <tr>
+                <th scope="row">{{ row.label }}</th>
+                <td>
+                  <input type="number" min="1" inputmode="numeric"
+                         id="{{ row.key }}-start" name="{{ row.key }}_start"
+                         value="{{ row.start }}" aria-label="{{ row.label }} from item">
+                </td>
+                <td>
+                  <input type="number" min="1" inputmode="numeric"
+                         id="{{ row.key }}-end" name="{{ row.key }}_end"
+                         value="{{ row.end }}" aria-label="{{ row.label }} to item">
+                </td>
+                <td><span id="{{ row.key }}-count">{{ row.count }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if editor %}
+        <ul class="warning-list">
+          {% for row in editor %}
+            {% if row.count and row.count < warn_size %}
+              <li>{{ row.label }}: only {{ row.count }} question(s); {{ warn_size }} or more gives players variety.</li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <p class="muted" id="band-warning" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button type="submit" class="btn btn-small">Save bands</button>
+      </div>
+    </form>
+  </section>
+
+  {% if uncovered %}
+    <section class="panel">
+      <h2>Items outside every band</h2>
+      <p class="muted">These will not be used:
+        {{ uncovered|join:", " }}
+      </p>
+    </section>
+  {% endif %}
+
+  <section class="panel">
+    <h2>Activation</h2>
+    <p class="muted">
+      {{ usable }} usable question{{ usable|pluralize }} in bands; at least
+      {{ minimum }} are needed. Disabled questions are not counted.
+    </p>
+    {% if quiz_set.status == "draft" %}
+      <form method="post" action="{% url 'game:quiz_set_confirm' quiz_set.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn"{% if not can_activate %} disabled{% endif %}>
+          Activate quiz
+        </button>
+      </form>
+    {% else %}
+      <p>Tanks you own can select this quiz in their quiz settings.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>Items</h2>
+    {# The answer key never appears in this page. #}
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Question</th>
+            <th scope="col">Difficulty</th>
+            <th scope="col">Used</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for question in display_items %}
+            <tr>
+              <td>{{ question.item_number }}</td>
+              <td>{{ question.prompt|truncatechars:110 }}</td>
+              <td>
+                {% if question.difficulty %}
+                  <span class="difficulty-badge difficulty-{{ question.difficulty }}">{{ question.get_difficulty_display }}</span>
+                {% else %}
+                  <span class="muted">not in a band</span>
+                {% endif %}
+              </td>
+              <td>{{ question.active|yesno:"Yes,No" }}</td>
+              <td>
+                <form method="post"
+                      action="{% url 'game:quiz_question_toggle' quiz_set.pk question.pk %}"
+                      class="inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-small btn-secondary">
+                    {% if question.active %}Disable{% else %}Enable{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="muted">No items were imported.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Rename</h2>
+    <form method="post" action="{% url 'game:quiz_set_rename' quiz_set.pk %}" class="pixel-form rename-form">
+      {% csrf_token %}
+      <div class="rename-row">
+        <input type="text" name="name" value="{{ quiz_set.name }}" maxlength="60"
+               aria-label="Quiz name" required>
+        <button type="submit" class="btn btn-small">Rename</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel danger-zone">
+    <h2>Delete quiz</h2>
+    <p class="muted">
+      Deleting removes every item and its bands. Tanks using it go back to
+      built-in questions; past answers keep working.
+    </p>
+    <form method="post" action="{% url 'game:quiz_set_delete' quiz_set.pk %}"
+          data-confirm="Delete “{{ quiz_set.name }}”? This cannot be undone."
+          data-confirm-label="Delete quiz">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Delete quiz</button>
+    </form>
+  </section>
+
+  <div class="actions">
+    <a class="btn btn-secondary" href="{% url 'game:quiz_set_list' %}">Back to my quizzes</a>
+  </div>
+
+  {{ item_numbers|json_script:"quiz-item-numbers" }}
+  <script type="module" src="{% static 'game/js/quiz_bands.js' %}"></script>
+{% endblock %}

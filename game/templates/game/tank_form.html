@@ -12,6 +12,24 @@
     <form class="pixel-form" method="post">
       {% csrf_token %}
       {% for field in form %}
+        {% if field.name == "species" %}
+          <fieldset class="species-picker">
+            <legend>{{ field.label }}</legend>
+            <div class="species-grid">
+              {% for option in species_options %}
+                <label class="species-option">
+                  <input type="radio" name="species" value="{{ option.key }}"
+                         {% if option.key == form.species.value|default:"goldfish" %}checked{% endif %} required>
+                  <span class="species-thumb" aria-hidden="true"
+                        style="background-image: url('{{ option.sprite_url }}');"></span>
+                  <span class="species-name">{{ option.name }}</span>
+                  <span class="species-desc">{{ option.description }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            {% if field.errors %}<ul class="errorlist">{{ field.errors }}</ul>{% endif %}
+          </fieldset>
+        {% else %}
         <div class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
           {% if field.name == "code" %}
@@ -23,6 +41,7 @@
           {% endif %}
           {% if field.errors %}<ul class="errorlist">{{ field.errors }}</ul>{% endif %}
         </div>
+        {% endif %}
       {% endfor %}
 
       <div class="actions">

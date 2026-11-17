@@ -1,9 +1,9 @@
 /**
- * Sprite sheet loading and drawing (Phase 4).
+ * Sprite sheet loading and drawing (Phases 4 and 9).
  *
- * One sheet per species: 32x32 cells, 4 columns of swim frames, 4 rows of
- * evolution stages. Fish are drawn facing right in the art; this module flips
- * them with an integer translate/scale for left-facing movement.
+ * One 128x192 sheet per species: 32x32 cells, 4 columns of swim frames and 6
+ * rows of evolution stages. Fish are drawn facing right in the art; this module
+ * flips them with an integer translate/scale for left-facing movement.
  *
  * Also caches white silhouettes per stage, used for the flash and the "my fish"
  * highlight without re-compositing every frame.
@@ -11,17 +11,30 @@
 
 export const CELL = 32;
 export const FRAMES = 4;
+export const STAGES = 6;
 
-/**
- * sprite_key -> sheet file + row. This is the one place species live: adding a
- * species means adding keys here and seeding matching EvolutionStage rows.
- */
-export const SPRITE_MAP = {
-  goldie_fry: { file: "fish_goldie.png", row: 0 },
-  goldie_juvenile: { file: "fish_goldie.png", row: 1 },
-  goldie_adult: { file: "fish_goldie.png", row: 2 },
-  goldie_elder: { file: "fish_goldie.png", row: 3 },
-};
+/** Every species sheet the game knows how to load. */
+export const SPECIES_KEYS = [
+  "goldfish",
+  "clownfish",
+  "bluetang",
+  "pufferfish",
+  "angelfish",
+  "betta",
+  "guppy",
+  "koi",
+  "seahorse",
+  "lionfish",
+  "neontetra",
+  "boxfish",
+  "mandarinfish",
+  "sailfish",
+  "anglerfish",
+];
+
+export function speciesFile(key) {
+  return SPECIES_KEYS.includes(key) ? `fish_${key}.png` : "fish_goldfish.png";
+}
 
 const BACKGROUND_FILES = [
   "sand_tile.png",
@@ -34,19 +47,15 @@ const BACKGROUND_FILES = [
   "bubble_0.png",
   "bubble_1.png",
   "bubble_2.png",
+  "accessories.png",
+  "accessories_small.png",
 ];
 
 const images = new Map(); // file name -> HTMLImageElement | null
 const silhouettes = new Map(); // sheet|row|color -> canvas
-let baseUrl = "";
-
-export function initSprites(base) {
-  baseUrl = base.endsWith("/") ? base : `${base}/`;
-}
 
 export function allFiles() {
-  const sheets = new Set(Object.values(SPRITE_MAP).map((entry) => entry.file));
-  return [...sheets, ...BACKGROUND_FILES];
+  return [...SPECIES_KEYS.map(speciesFile), ...BACKGROUND_FILES];
 }
 
 function loadImage(url) {
@@ -63,7 +72,7 @@ function loadImage(url) {
  * Preload every sprite. Never rejects: a missing file is cached as `null` so
  * callers can fall back to placeholder rectangles and show a visible error.
  */
-export async function preload() {
+export async function preload(baseUrl) {
   const results = await Promise.all(
     allFiles().map(async (file) => [file, await loadImage(baseUrl + file)])
   );
@@ -80,12 +89,7 @@ export function getImage(file) {
   return images.get(file) ?? null;
 }
 
-/** Resolve a sprite_key to its sheet entry, falling back to the first species. */
-export function spriteConfigFor(spriteKey) {
-  return SPRITE_MAP[spriteKey] ?? SPRITE_MAP[Object.keys(SPRITE_MAP)[0]];
-}
-
-function withFacing(ctx, x, y, facing, paint) {
+export function withFacing(ctx, x, y, facing, paint) {
   if (facing < 0) {
     ctx.save();
     ctx.translate(x + CELL, y);
@@ -97,10 +101,7 @@ function withFacing(ctx, x, y, facing, paint) {
   }
 }
 
-/**
- * Draw one 32x32 frame. Returns false when the sheet is unavailable so the
- * caller can draw its rectangle fallback.
- */
+/** Draw one 32x32 frame. Returns false when the sheet is unavailable. */
 export function drawFish(ctx, sheetFile, row, frame, x, y, facing) {
   const sheet = getImage(sheetFile);
   if (!sheet) {

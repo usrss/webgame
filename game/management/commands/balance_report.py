@@ -49,6 +49,7 @@ class Command(BaseCommand):
         self._tanks()
         self._attempts(window_start, days)
         self._settings(config)
+        self._evolution_curve(config)
         self._warnings()
 
     # -------------------------------------------------------------------- parts
@@ -146,6 +147,36 @@ class Command(BaseCommand):
             "QUIZ_DEFAULT_SUBJECTS",
         ):
             self.stdout.write(f"  {key} = {config[key]}")
+
+    def _evolution_curve(self, config) -> None:
+        """Days to each evolution at the Phase 7 daily XP cap, per XP step."""
+        self.stdout.write(self.style.MIGRATE_HEADING("Evolution pace"))
+        levels = list(config["EVOLUTION_LEVELS"])[1:]
+        cap = int(config["QUIZ_DAILY_CORRECT_CAP"]) * int(config["XP_PER_FEED"])
+        steps = [int(config["XP_PER_LEVEL_STEP"]), 10, 20, 50]
+        steps = list(dict.fromkeys(steps))  # keep order, drop duplicates
+
+        header = "  step | " + " | ".join(f"Lvl {level}" for level in levels) + " | Lvl 75"
+        self.stdout.write(header)
+        self.stdout.write("  " + "-" * (len(header) - 2))
+        for step in steps:
+            cells = []
+            for level in [*levels, int(config["MAX_LEVEL"])]:
+                xp = step * (level - 1) * level // 2
+                cells.append(f"{xp / cap:.1f} d" if cap else "n/a")
+            marker = " (current)" if step == int(config["XP_PER_LEVEL_STEP"]) else ""
+            self.stdout.write(f"  {step:>4}{marker:<10} | " + " | ".join(cells))
+
+        max_level = int(config["MAX_LEVEL"])
+        current_xp = int(config["XP_PER_LEVEL_STEP"]) * (max_level - 1) * max_level // 2
+        self.stdout.write(
+            f"  at {cap} XP/day, level 75 needs {current_xp:,} XP "
+            f"({current_xp / cap:.0f} days) with the current step."
+        )
+        self.stdout.write(
+            "  recommended XP_PER_LEVEL_STEP = 20: ~4.5 days to Lv 10, "
+            "~242 days to Lv 70, ~278 days to Lv 75."
+        )
 
     def _warnings(self) -> None:
         self.stdout.write(self.style.MIGRATE_HEADING("Warnings"))

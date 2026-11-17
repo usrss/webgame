@@ -62,6 +62,8 @@ export class EffectLayer {
     if (alreadyPlaying) {
       return;
     }
+    // Five evolutions now: later stages get a longer, bigger celebration.
+    const stage = Math.max(0, Math.min(5, Number(toStage) || 0));
     this.effects.push({
       kind: "evolution",
       spriteId: sprite.id,
@@ -70,9 +72,9 @@ export class EffectLayer {
       toStage,
       stageName,
       start: now,
-      duration: EVOLUTION_MS,
+      duration: EVOLUTION_MS + stage * 120,
       lastStep: now,
-      particles: this.reducedMotion ? [] : this.spawnParticles(18),
+      particles: this.reducedMotion ? [] : this.spawnParticles(10 + stage * 8),
       visual: { flash: false, stageOverride: fromStage },
     });
   }

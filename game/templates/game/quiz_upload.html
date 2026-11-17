@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Upload a quiz · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="tank-header">
+    <h1>Upload a quiz</h1>
+    <p class="muted">CSV, Excel (.xlsx), text (.txt) or Word (.docx). PDFs are not supported.</p>
+  </div>
+
+  <section class="panel">
+    <form method="post" enctype="multipart/form-data" class="pixel-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <ul class="error-list">
+          {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      <div class="field">
+        <label for="{{ form.name.id_for_label }}">Quiz name</label>
+        {{ form.name }}
+        {% for error in form.name.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ form.file.id_for_label }}">Quiz file</label>
+        {{ form.file }}
+        {% for error in form.file.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+      <p class="muted">
+        Don't include students' personal information. Only upload content you have
+        the right to use.
+      </p>
+      <div class="actions">
+        <button type="submit" class="btn">Upload and preview</button>
+        <a class="btn btn-secondary" href="{% url 'game:quiz_set_list' %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+
+  {% if parsed %}
+    <section class="panel">
+      <h2>What we found</h2>
+      <p>{{ parsed.valid_count }} usable question{{ parsed.valid_count|pluralize }}{% if parsed.encoding %} · read as {{ parsed.encoding }}{% endif %}</p>
+      {% if parsed.errors %}
+        <h3>Problems ({{ parsed.errors|length }})</h3>
+        <ul class="error-list">
+          {% for error in parsed.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% if parsed.warnings %}
+        <h3>Warnings ({{ parsed.warnings|length }})</h3>
+        <ul class="warning-list">
+          {% for warning in parsed.warnings %}<li>{{ warning }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  <section class="panel">
+    <h2>Formats</h2>
+    <p class="muted">
+      CSV and Excel: <code>no,question,a,b,c,d,answer,explanation</code>.<br>
+      Text and Word: number, question, choices typed as <code>A.</code> <code>B.</code>
+      <code>C.</code> (optionally <code>D.</code>), then <code>Answer: B</code>.
+      Choices made with Word's automatic list can't be read.
+    </p>
+    <div class="actions">
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'csv' %}">CSV template</a>
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'xlsx' %}">Excel template</a>
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'txt' %}">Text template</a>
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'docx' %}">Word template</a>
+    </div>
+  </section>
+{% endblock %}

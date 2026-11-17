@@ -51,12 +51,13 @@ class StateEndpointTests(TestCase):
                 "level",
                 "stage",
                 "stage_name",
-                "sprite_key",
+                "species",
                 "xp",
                 "xp_needed",
                 "hunger",
                 "can_feed",
                 "cooldown_remaining",
+                "equipped",
             },
         )
         self.assertEqual(entry["id"], self.fish.pk)
@@ -64,8 +65,11 @@ class StateEndpointTests(TestCase):
         self.assertEqual(entry["owner"], self.owner.username)
         self.assertEqual(entry["level"], 1)
         self.assertEqual(entry["stage"], 0)
-        self.assertEqual(entry["stage_name"], "Fry")
-        self.assertEqual(entry["sprite_key"], "goldie_fry")
+        self.assertEqual(entry["species"], "goldfish")
+        self.assertEqual(entry["stage_name"], "Goldie Egg")
+        self.assertEqual(
+            entry["equipped"], {"head": None, "face": None, "body": None, "tail": None}
+        )
         self.assertEqual(entry["xp"], 0)
         self.assertEqual(entry["xp_needed"], 50)
         self.assertEqual(entry["hunger"], 0)
@@ -83,19 +87,18 @@ class StateEndpointTests(TestCase):
         self.assertLessEqual(entry["cooldown_remaining"], 300)
 
     def test_stage_metadata_follows_evolution(self):
-        self.fish.level = 15
+        self.fish.level = 25
         self.fish.stage = 2
         self.fish.save()
         self.client.force_login(self.owner)
 
         entry = self.client.get(self.url).json()["fish"][0]
-        self.assertEqual(entry["stage_name"], "Adult")
-        self.assertEqual(entry["sprite_key"], "goldie_adult")
+        self.assertEqual(entry["stage_name"], "Bubble Goldie")
 
     def test_xp_needed_is_zero_at_max_level(self):
-        self.fish.level = 50
+        self.fish.level = 75
         self.fish.xp = 0
-        self.fish.stage = 3
+        self.fish.stage = 5
         self.fish.save()
         self.client.force_login(self.owner)
 
@@ -133,7 +136,7 @@ class StateEndpointTests(TestCase):
         self.assertEqual(len(response.json()["fish"]), 11)
         self.assertEqual(len(baseline), len(with_many))
         # Phase 7 adds one fixed query for the quiz block (daily count).
-        self.assertLessEqual(len(with_many), 6)
+        self.assertLessEqual(len(with_many), 8)
 
 
 # Phase 7 defaults to quiz-only feeding, so these Phase 1-5 tests pin it off.
@@ -167,8 +170,8 @@ class FeedEndpointTests(TestCase):
         self.assertIsNotNone(self.fish.last_fed_at)
 
     def test_level_up_and_evolution_flags(self):
-        self.fish.level = 4
-        self.fish.xp = 199
+        self.fish.level = 9
+        self.fish.xp = 449  # one XP short of level 10 at step 50
         self.fish.save()
 
         payload = self.client.post(self.url).json()
@@ -178,8 +181,9 @@ class FeedEndpointTests(TestCase):
         self.assertEqual(payload["old_stage"], 0)
         self.assertEqual(payload["new_stage"], 1)
         self.assertEqual(payload["fish"]["stage"], 1)
-        self.assertEqual(payload["fish"]["stage_name"], "Juvenile")
-        self.assertEqual(payload["fish"]["sprite_key"], "goldie_juvenile")
+        self.assertEqual(payload["fish"]["stage_name"], "Little Goldie")
+        self.assertEqual(payload["pearls_gained"], 26)
+        self.assertEqual([gift["key"] for gift in payload["gifts"]], ["sailor_cap"])
 
     def test_second_feed_within_cooldown_is_429(self):
         self.assertEqual(self.client.post(self.url).status_code, 200)

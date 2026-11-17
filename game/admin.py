@@ -4,15 +4,24 @@ from django.contrib import admin, messages
 from django.db.models import Count, Q
 
 from .models import (
+    Accessory,
     EvolutionStage,
     Fish,
+    FishEquipment,
     FishReport,
+    FishSpecies,
+    PearlTransaction,
+    PlayerProfile,
     Question,
     QuestionAttempt,
+    QuizBand,
+    QuizSet,
+    SpeciesStageName,
     Tank,
     TankBan,
 )
-from .services import regenerate_join_code
+from .quiz.sets import deactivate_set
+from .services import award_pearls, regenerate_join_code
 
 
 class HasUnresolvedReportsFilter(admin.SimpleListFilter):
@@ -39,15 +48,28 @@ class TankAdmin(admin.ModelAdmin):
         "member_count",
         "capacity",
         "quiz_grade",
+        "quiz_source",
         "created_at",
     ]
     search_fields = ["name", "join_code", "owner__username"]
-    list_filter = ["created_at", "quiz_grade"]
+    list_filter = ["created_at", "quiz_grade", "quiz_source"]
     readonly_fields = ["join_code", "created_at"]
     actions = ["regenerate_codes"]
     fieldsets = [
         (None, {"fields": ["name", "owner", "join_code", "capacity", "created_at"]}),
-        ("Quiz (Phase 7)", {"fields": ["quiz_grade", "quiz_subjects"]}),
+        (
+            "Quiz",
+            {
+                "fields": [
+                    "quiz_grade",
+                    "quiz_subjects",
+                    "quiz_source",
+                    "quiz_set",
+                    "quiz_difficulty_mode",
+                    "quiz_fixed_difficulty",
+                ]
+            },
+        ),
     ]
 
     def get_queryset(self, request):
@@ -82,13 +104,30 @@ class EvolutionStageAdmin(admin.ModelAdmin):
     list_filter = ["stage_number"]
 
 
+class FishEquipmentInline(admin.TabularInline):
+    model = FishEquipment
+    extra = 0
+    fields = ["slot", "accessory"]
+    autocomplete_fields = []
+
+
 @admin.register(Fish)
 class FishAdmin(admin.ModelAdmin):
-    list_display = ["name", "owner", "tank", "level", "stage", "unresolved_reports", "created_at"]
+    list_display = [
+        "name",
+        "species",
+        "owner",
+        "tank",
+        "level",
+        "stage",
+        "unresolved_reports",
+        "created_at",
+    ]
     search_fields = ["name", "owner__username", "tank__name"]
-    list_filter = [HasUnresolvedReportsFilter, "stage", "level"]
-    list_select_related = ["owner", "tank"]
+    list_filter = [HasUnresolvedReportsFilter, "species", "stage", "level"]
+    list_select_related = ["owner", "tank", "species"]
     readonly_fields = ["created_at", "renamed_at"]
+    inlines = [FishEquipmentInline]
     actions = ["reset_names", "delete_selected_fish"]
 
     def get_queryset(self, request):
@@ -143,14 +182,25 @@ class FishReportAdmin(admin.ModelAdmin):
 class QuestionAdmin(admin.ModelAdmin):
     """Staff-only question editing; players never see this model."""
 
-    list_display = ["prompt", "subject", "grade", "active", "created_at"]
-    list_filter = ["subject", "grade", "active"]
+    list_display = [
+        "prompt",
+        "subject",
+        "grade",
+        "difficulty",
+        "active",
+        "created_at",
+    ]
+    list_filter = ["subject", "grade", "active", "difficulty", "quiz_set"]
     search_fields = ["prompt", "explanation"]
     readonly_fields = ["created_at"]
     actions = ["activate", "deactivate"]
     fieldsets = [
         (None, {"fields": ["subject", "grade", "prompt", "choices"]}),
         ("Answer", {"fields": ["correct_index", "explanation", "active"]}),
+        (
+            "Custom quiz",
+            {"fields": ["quiz_set", "item_number", "difficulty"]},
+        ),
         (None, {"fields": ["created_at"]}),
     ]
 
@@ -175,14 +225,146 @@ class QuestionAttemptAdmin(admin.ModelAdmin):
         "fish",
         "subject",
         "grade",
+        "difficulty",
         "correct",
         "issued_at",
         "answered_at",
     ]
-    list_filter = ["correct", "subject", "grade", "issued_at"]
+    list_filter = ["correct", "subject", "grade", "difficulty", "issued_at"]
     search_fields = ["user__username", "fish__name", "prompt"]
     list_select_related = ["user", "fish"]
     date_hierarchy = "issued_at"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        return [field.name for field in self.model._meta.fields]
+
+
+class QuizBandInline(admin.TabularInline):
+    model = QuizBand
+    extra = 0
+    can_delete = False
+    fields = ["difficulty", "start", "end"]
+    readonly_fields = ["difficulty", "start", "end"]
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(QuizSet)
+class QuizSetAdmin(admin.ModelAdmin):
+    """Read-mostly moderation view; uploaded files are never stored."""
+
+    list_display = ["name", "owner", "status", "source_format", "question_count", "created_at"]
+    list_filter = ["status", "source_format", "created_at"]
+    search_fields = ["name", "owner__username"]
+    readonly_fields = [
+        "owner",
+        "source_filename",
+        "source_format",
+        "created_at",
+        "question_count",
+    ]
+    list_select_related = ["owner"]
+    inlines = [QuizBandInline]
+    actions = ["deactivate_sets"]
+    fieldsets = [
+        (None, {"fields": ["owner", "name", "status"]}),
+        ("Upload", {"fields": ["source_filename", "source_format", "created_at"]}),
+        ("Counts", {"fields": ["question_count"]}),
+    ]
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("owner")
+            .annotate(total_questions=Count("questions"))
+        )
+
+    @admin.display(description="Questions", ordering="total_questions")
+    def question_count(self, obj):
+        return obj.total_questions
+
+    @admin.action(description="Deactivate set (tanks revert to built-in)")
+    def deactivate_sets(self, request, queryset):
+        updated = 0
+        for quiz_set in queryset:
+            deactivate_set(quiz_set)
+            updated += 1
+        self.message_user(
+            request, f"Deactivated {updated} quiz set(s).", messages.SUCCESS
+        )
+
+
+class SpeciesStageNameInline(admin.TabularInline):
+    model = SpeciesStageName
+    extra = 0
+    fields = ["stage_number", "name"]
+    readonly_fields = ["stage_number", "name"]
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(FishSpecies)
+class FishSpeciesAdmin(admin.ModelAdmin):
+    list_display = ["order", "name", "key", "active"]
+    list_filter = ["active"]
+    search_fields = ["name", "key"]
+    readonly_fields = ["key", "name", "description", "order"]
+    inlines = [SpeciesStageNameInline]
+    actions = ["activate", "deactivate"]
+
+    @admin.action(description="Activate selected species")
+    def activate(self, request, queryset):
+        updated = queryset.update(active=True)
+        self.message_user(request, f"Activated {updated} species.", messages.SUCCESS)
+
+    @admin.action(description="Deactivate selected species")
+    def deactivate(self, request, queryset):
+        updated = queryset.update(active=False)
+        self.message_user(request, f"Deactivated {updated} species.", messages.SUCCESS)
+
+
+@admin.register(Accessory)
+class AccessoryAdmin(admin.ModelAdmin):
+    list_display = ["name", "slot", "rarity", "unlock_type", "price", "unlock_stage", "active"]
+    list_filter = ["slot", "rarity", "unlock_type", "active"]
+    search_fields = ["name", "key"]
+    readonly_fields = ["key", "slot"]
+
+
+@admin.register(PlayerProfile)
+class PlayerProfileAdmin(admin.ModelAdmin):
+    list_display = ["user", "pearls"]
+    search_fields = ["user__username"]
+    readonly_fields = ["user"]
+    actions = ["grant_pearls"]
+
+    @admin.action(description="Grant 10 pearls (audited)")
+    def grant_pearls(self, request, queryset):
+        for profile in queryset.select_related("user"):
+            award_pearls(profile.user, 10, "admin_grant")
+        self.message_user(
+            request, f"Granted 10 pearls to {queryset.count()} player(s).", messages.SUCCESS
+        )
+
+
+@admin.register(PearlTransaction)
+class PearlTransactionAdmin(admin.ModelAdmin):
+    list_display = ["user", "amount", "reason", "created_at"]
+    list_filter = ["reason", "created_at"]
+    search_fields = ["user__username"]
+    date_hierarchy = "created_at"
 
     def has_add_permission(self, request):
         return False

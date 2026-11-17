@@ -13,13 +13,30 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
+from django.templatetags.static import static
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import CreateTankForm, JoinTankForm, SignupForm
-from .models import QUIZ_GRADE_MAX, SUBJECTS, EvolutionStage, Fish, FishReport, Tank
+from .models import (
+    DIFFICULTIES,
+    QUIZ_DIFFICULTY_MODES,
+    QUIZ_GRADE_MAX,
+    QUIZ_SOURCES,
+    SLOT_KEYS,
+    SUBJECTS,
+    EvolutionStage,
+    Fish,
+    FishReport,
+    FishEquipment,
+    FishSpecies,
+    QuizSet,
+    SpeciesStageName,
+    Tank,
+)
 from .quiz.services import (
     answer_question,
     issue_question,
@@ -27,6 +44,8 @@ from .quiz.services import (
     remaining_today,
     update_quiz_settings,
 )
+from .quiz.bank import custom_pool_size
+from .quiz.sets import update_tank_quiz_config
 from .quiz.exceptions import (
     AttemptAlreadyAnswered,
     AttemptExpired,
@@ -44,7 +63,9 @@ from .services import (
     CannotRenameYet,
     FeedOnCooldown,
     InvalidJoinCode,
+    InvalidSpecies,
     TankFull,
+    get_profile,
     create_tank,
     delete_tank,
     feed,
@@ -64,6 +85,19 @@ from .services import (
 
 MAX_LEVEL = settings.GAME_SETTINGS["MAX_LEVEL"]
 logger = logging.getLogger(__name__)
+
+
+def _species_options():
+    """The species radio grid shown on create/join (active species only)."""
+    return [
+        {
+            "key": species.key,
+            "name": species.name,
+            "description": species.description,
+            "sprite_url": static(f"game/sprites/fish_{species.key}.png"),
+        }
+        for species in FishSpecies.objects.filter(active=True).order_by("order", "name")
+    ]
 
 
 def signup(request):
@@ -108,6 +142,7 @@ def tank_create(request):
             request.user,
             form.cleaned_data["tank_name"],
             form.cleaned_data["fish_name"],
+            form.cleaned_data["species"],
         )
         messages.success(
             request,
@@ -122,6 +157,7 @@ def tank_create(request):
             "form_title": "Create a tank",
             "submit_label": "Create tank",
             "show_code_hint": True,
+            "species_options": _species_options(),
         },
     )
 
@@ -141,8 +177,9 @@ def tank_join(request):
                 request.user,
                 form.cleaned_data["code"],
                 form.cleaned_data["fish_name"],
+                form.cleaned_data["species"],
             )
-        except (InvalidJoinCode, Banned):
+        except (InvalidJoinCode, Banned, InvalidSpecies):
             # Deliberately generic: a failed join must not reveal whether the
             # code exists, or that the user is banned from it.
             form.add_error(None, "That join code doesn't match a tank.")
@@ -161,6 +198,7 @@ def tank_join(request):
             "form_title": "Join a tank",
             "submit_label": "Join tank",
             "show_code_hint": False,
+            "species_options": _species_options(),
         },
     )
 
@@ -191,34 +229,46 @@ def _iso_z(moment):
     return moment.isoformat().replace("+00:00", "Z")
 
 
-def _stage_lookup():
-    """Map stage number -> (name, sprite_key) with one query (Phase 4)."""
-    return {
-        stage.stage_number: (stage.name, stage.sprite_key)
-        for stage in EvolutionStage.objects.all()
+def _fish_metadata(fish_ids):
+    """Stage names and equipped keys for *fish_ids*, in two fixed queries."""
+    fish_qs = Fish.objects.filter(pk__in=list(fish_ids))
+    species_ids = set(fish_qs.values_list("species_id", flat=True))
+    stage_names = {
+        (species_id, stage_number): name
+        for species_id, stage_number, name in SpeciesStageName.objects.filter(
+            species_id__in=species_ids
+        ).values_list("species_id", "stage_number", "name")
     }
+    equipment: dict[int, dict[str, str]] = {}
+    for fish_id, slot, key in FishEquipment.objects.filter(
+        fish_id__in=list(fish_ids)
+    ).values_list("fish_id", "slot", "accessory__key"):
+        equipment.setdefault(fish_id, {})[slot] = key
+    return stage_names, equipment
 
 
-def _serialize_fish(fish, now, stages=None):
-    """One fish entry for the state endpoint, using the Phase 1 services."""
-    if stages is None:
-        stages = _stage_lookup()
-    stage_name, sprite_key = stages.get(fish.stage, ("", ""))
+def _serialize_fish(fish, now, stage_names=None, equipment=None):
+    """One fish entry for the state/feed endpoints."""
+    if stage_names is None or equipment is None:
+        stage_names, equipment = _fish_metadata([fish.pk])
+    stage_name = stage_names.get((fish.species_id, fish.stage), "")
     cooldown_remaining = seconds_until_can_feed(fish, now=now)
     xp_needed = 0 if fish.level >= MAX_LEVEL else xp_to_next_level(fish.level)
+    worn = equipment.get(fish.pk, {})
     return {
         "id": fish.pk,
         "name": fish.name,
         "owner": fish.owner.username,
+        "species": fish.species.key,
         "level": fish.level,
         "stage": fish.stage,
         "stage_name": stage_name,
-        "sprite_key": sprite_key,
         "xp": fish.xp,
         "xp_needed": xp_needed,
         "hunger": get_hunger(fish, now=now),
         "can_feed": cooldown_remaining == 0,
         "cooldown_remaining": cooldown_remaining,
+        "equipped": {slot: worn.get(slot) for slot in SLOT_KEYS},
     }
 
 
@@ -239,17 +289,20 @@ def tank_state(request, tank_id):
 
     tank = membership.tank
     now = timezone.now()
-    stages = _stage_lookup()
-    # select_related keeps this independent of the fish count; the stage rows
-    # and the quiz counts are one extra query each, whatever the fish count.
-    fish_qs = tank.fish.select_related("owner").order_by("id")
+    # select_related keeps this independent of the fish count; stage names and
+    # equipment are two more fixed queries, whatever the fish count.
+    fish_qs = list(tank.fish.select_related("owner", "species").order_by("id"))
+    stage_names, equipment = _fish_metadata([fish.pk for fish in fish_qs])
 
     return _json_no_store(
         {
             "tank": {"id": tank.pk, "name": tank.name, "capacity": tank.capacity},
             "me": {"fish_id": membership.pk},
             "server_time": _iso_z(now),
-            "fish": [_serialize_fish(fish, now, stages) for fish in fish_qs],
+            "fish": [
+                _serialize_fish(fish, now, stage_names, equipment)
+                for fish in fish_qs
+            ],
             "quiz": quiz_state(tank, membership, now=now),
         }
     )
@@ -289,6 +342,11 @@ def tank_feed(request, tank_id):
             "evolved": result.evolved,
             "old_stage": result.old_stage,
             "new_stage": result.new_stage,
+            "pearls_gained": result.pearls_gained,
+            "gifts": [
+                {"key": gift.key, "name": gift.name, "slot": gift.slot}
+                for gift in result.gifts
+            ],
             "fish": _serialize_fish(result.fish, now),
         }
     )
@@ -333,6 +391,15 @@ def tank_settings(request, tank_id):
             "bans": tank.bans.select_related("user", "banned_by"),
             "quiz_grades": range(1, QUIZ_GRADE_MAX + 1),
             "quiz_subjects": SUBJECTS,
+            "quiz_sources": QUIZ_SOURCES,
+            "quiz_modes": QUIZ_DIFFICULTY_MODES,
+            "difficulties": DIFFICULTIES,
+            "active_sets": QuizSet.objects.filter(
+                owner=request.user, status="active"
+            ).order_by("name"),
+            "quiz_pool_warning": (
+                tank.quiz_source == "custom" and custom_pool_size(tank, membership) == 0
+            ),
         },
     )
 
@@ -482,6 +549,7 @@ def tank_quiz_next(request, tank_id):
             "grade": attempt.grade,
             "prompt": attempt.prompt,
             "choices": attempt.choices,
+            "difficulty": attempt.difficulty,
             "expires_in": expires_in,
             "remaining_today": remaining_today(membership, now=now),
             "cap": settings.GAME_SETTINGS["QUIZ_DAILY_CORRECT_CAP"],
@@ -543,6 +611,11 @@ def tank_quiz_answer(request, tank_id):
             "evolved": result.feed.evolved,
             "old_stage": result.feed.old_stage,
             "new_stage": result.feed.new_stage,
+            "pearls_gained": result.feed.pearls_gained,
+            "gifts": [
+                {"key": gift.key, "name": gift.name, "slot": gift.slot}
+                for gift in result.feed.gifts
+            ],
             "fish": _serialize_fish(result.feed.fish, now),
         }
     return _json_no_store(payload)
@@ -551,15 +624,40 @@ def tank_quiz_answer(request, tank_id):
 @login_required
 @require_POST
 def tank_quiz_settings(request, tank_id):
-    """Owner-only: set the tank's quiz grade and subjects."""
+    """Owner-only: set the tank's quiz grade, subjects and source."""
     membership = _membership_or_404(request, tank_id)
     tank = _owner_tank_or_403(request, membership)
     data = _json_body(request)
     grade = data.get("grade")
     subjects = data.getlist("subjects") if hasattr(data, "getlist") else data.get("subjects")
 
+    config_keys = ("source", "quiz_set", "difficulty_mode", "fixed_difficulty")
+    has_config = any(key in data for key in config_keys)
+    has_basic = "grade" in data or "subjects" in data
+
     try:
-        update_quiz_settings(tank, request.user, grade, subjects)
+        with transaction.atomic():
+            if has_config:
+                update_tank_quiz_config(
+                    tank,
+                    request.user,
+                    source=data.get("source") if "source" in data else None,
+                    quiz_set_id=(
+                        data.get("quiz_set") if "quiz_set" in data else None
+                    ),
+                    difficulty_mode=(
+                        data.get("difficulty_mode")
+                        if "difficulty_mode" in data
+                        else None
+                    ),
+                    fixed_difficulty=(
+                        data.get("fixed_difficulty")
+                        if "fixed_difficulty" in data
+                        else None
+                    ),
+                )
+            if has_basic or not has_config:
+                update_quiz_settings(tank, request.user, grade, subjects)
     except ValidationError as exc:
         if _wants_json(request):
             return _json_no_store(
@@ -570,9 +668,20 @@ def tank_quiz_settings(request, tank_id):
         return redirect("game:tank_settings", tank_id=tank.pk)
 
     if _wants_json(request):
-        return _json_no_store(
-            {"grade": tank.quiz_grade, "subjects": list(tank.quiz_subjects)}, status=200
-        )
+        payload = {
+            "grade": tank.quiz_grade,
+            "subjects": list(tank.quiz_subjects),
+        }
+        if has_config:
+            payload.update(
+                {
+                    "source": tank.quiz_source,
+                    "quiz_set_id": tank.quiz_set_id,
+                    "difficulty_mode": tank.quiz_difficulty_mode,
+                    "fixed_difficulty": tank.quiz_fixed_difficulty,
+                }
+            )
+        return _json_no_store(payload, status=200)
     messages.success(request, "Quiz settings saved. New questions use them.")
     return redirect("game:tank_settings", tank_id=tank.pk)
 

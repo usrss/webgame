@@ -22,6 +22,7 @@ export function initUI() {
     feedButton: byId("feed-button"),
     feedHint: byId("feed-hint"),
     fishList: byId("fish-list"),
+    pearls: byId("pearl-balance"),
     toasts: byId("toasts"),
     reconnect: byId("reconnect-indicator"),
     tankGone: byId("tank-gone"),
@@ -48,7 +49,9 @@ export function renderMyFish(fish) {
     return;
   }
   els.myName.textContent = fish.name;
-  els.myLevel.textContent = `Level ${fish.level} · Stage ${fish.stage}`;
+  els.myLevel.textContent = `Level ${fish.level} · ${
+    fish.stage_name || `Stage ${fish.stage}`
+  }`;
 
   const ratio = fish.xp_needed > 0 ? (fish.xp / fish.xp_needed) * 100 : 100;
   setBar(els.xpBar, ratio);
@@ -115,15 +118,31 @@ export function setFeedState({ enabled, label, hint }) {
   }
 }
 
-export function toast(text, kind = "") {
+export function toast(text, kind = "", onClick = null) {
   if (!els) {
     return;
   }
   const node = document.createElement("div");
   node.className = kind ? `toast ${kind}` : "toast";
   node.textContent = text;
+  if (typeof onClick === "function") {
+    node.classList.add("toast-action");
+    node.setAttribute("role", "button");
+    node.tabIndex = 0;
+    const activate = () => {
+      onClick();
+      node.remove();
+    };
+    node.addEventListener("click", activate);
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        activate();
+      }
+    });
+  }
   els.toasts.append(node);
-  setTimeout(() => node.remove(), 3000);
+  setTimeout(() => node.remove(), onClick ? 9000 : 3000);
 }
 
 export function setReconnect(isReconnecting) {

@@ -69,7 +69,20 @@ class XpToNextLevelTests(TestCase):
 
 class StageForLevelTests(TestCase):
     def test_stage_boundaries(self):
-        expected = {1: 0, 4: 0, 5: 1, 14: 1, 15: 2, 29: 2, 30: 3, 50: 3}
+        expected = {
+            1: 0,
+            9: 0,
+            10: 1,
+            24: 1,
+            25: 2,
+            39: 2,
+            40: 3,
+            54: 3,
+            55: 4,
+            69: 4,
+            70: 5,
+            75: 5,
+        }
         for level, stage in expected.items():
             self.assertEqual(stage_for_level(level), stage, f"level {level}")
 
@@ -187,9 +200,9 @@ class FeedTests(TestCase):
         self.assertEqual(result.xp_gained, XP_PER_FEED)
 
     def test_level_up_without_evolution(self):
-        result = feed(make_fish(level=6, xp=xp_to_next_level(6) - 1), now=T0)
+        result = feed(make_fish(level=11, xp=xp_to_next_level(11) - 1), now=T0)
 
-        self.assertEqual(result.fish.level, 7)
+        self.assertEqual(result.fish.level, 12)
         self.assertEqual(result.fish.xp, XP_PER_FEED - 1)
         self.assertEqual(result.fish.stage, 1)
         self.assertTrue(result.leveled_up)
@@ -197,38 +210,36 @@ class FeedTests(TestCase):
 
 
 class EvolutionTests(TestCase):
-    def test_crossing_level_5_evolves_to_juvenile(self):
-        fish = make_fish(level=4, xp=xp_to_reach(5, 4) - 1)
-        result = feed(fish, now=T0)
+    def test_each_threshold_evolves_to_the_next_stage(self):
+        for level, old_stage, new_stage in (
+            (10, 0, 1),
+            (25, 1, 2),
+            (40, 2, 3),
+            (55, 3, 4),
+            (70, 4, 5),
+        ):
+            with self.subTest(level=level):
+                fish = make_fish(level=level - 1, xp=xp_to_reach(level, level - 1) - 1)
+                result = feed(fish, now=T0)
 
-        self.assertEqual(result.fish.level, 5)
-        self.assertEqual(result.fish.stage, 1)
-        self.assertTrue(result.evolved)
-        self.assertEqual((result.old_stage, result.new_stage), (0, 1))
+                self.assertEqual(result.fish.level, level)
+                self.assertEqual(result.fish.stage, new_stage)
+                self.assertTrue(result.evolved)
+                self.assertEqual((result.old_stage, result.new_stage), (old_stage, new_stage))
+                self.assertGreater(result.pearls_gained, 0)
 
-    def test_crossing_level_15_evolves_to_adult(self):
-        fish = make_fish(level=14, xp=xp_to_reach(15, 14) - 1)
-        result = feed(fish, now=T0)
-
-        self.assertEqual(result.fish.level, 15)
-        self.assertEqual(result.fish.stage, 2)
-        self.assertTrue(result.evolved)
-        self.assertEqual((result.old_stage, result.new_stage), (1, 2))
-
-    def test_crossing_level_30_evolves_to_elder(self):
-        fish = make_fish(level=29, xp=xp_to_reach(30, 29) - 1)
-        result = feed(fish, now=T0)
-
-        self.assertEqual(result.fish.level, 30)
-        self.assertEqual(result.fish.stage, 3)
-        self.assertTrue(result.evolved)
-        self.assertEqual((result.old_stage, result.new_stage), (2, 3))
+    def test_one_level_before_a_threshold_does_not_evolve(self):
+        for level in (2, 11, 26, 41, 56, 71):
+            with self.subTest(level=level):
+                fish = make_fish(level=level, xp=xp_to_next_level(level) - 1)
+                result = feed(fish, now=T0)
+                self.assertFalse(result.evolved)
 
     def test_leaping_a_stage_boundary_in_one_feed_reports_evolved(self):
-        fish = make_fish(level=4, xp=xp_to_reach(15, 4) - 1)
+        fish = make_fish(level=9, xp=xp_to_reach(25, 9) - 1)
         result = feed(fish, now=T0)
 
-        self.assertEqual(result.fish.level, 15)
+        self.assertEqual(result.fish.level, 25)
         self.assertEqual(result.fish.stage, 2)
         self.assertTrue(result.evolved)
         self.assertEqual((result.old_stage, result.new_stage), (0, 2))
@@ -245,7 +256,7 @@ class MaxLevelTests(TestCase):
         self.assertEqual(result.levels_gained, 1)
 
     def test_max_level_feed_gains_no_xp_but_keeps_cooldown(self):
-        result = feed(make_fish(level=MAX_LEVEL, xp=123, stage=3), now=T0)
+        result = feed(make_fish(level=MAX_LEVEL, xp=123, stage=5), now=T0)
 
         self.assertEqual(result.xp_gained, 0)
         self.assertEqual(result.fish.level, MAX_LEVEL)

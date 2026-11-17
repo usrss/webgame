@@ -1,30 +1,39 @@
 /**
- * Client-side fish state and drawing (Phases 3-4).
+ * Client-side fish state and drawing (Phases 3-4, species/accessories Phase 9).
  *
- * Fish swim on a stepped 8 Hz movement loop and are painted from the species
- * sprite sheet. When sheets are unavailable (failed load, or an unknown
- * sprite_key) the Phase 3 placeholder rectangles are drawn instead.
+ * Fish swim on a stepped 8 Hz movement loop and are painted from a 32x32
+ * composite of the species sheet plus equipped accessories. When sheets are
+ * unavailable the Phase 3 placeholder rectangles are drawn instead.
  */
 
+import { bboxFor, drawComposite } from "./fishRenderer.js";
 import {
   CELL,
   FRAMES,
-  drawFish,
   drawSilhouette,
   getImage,
   getSilhouette,
-  spriteConfigFor,
+  speciesFile,
 } from "./sprites.js";
 
 // Placeholder [width, height] per stage, kept for the fallback renderer.
 const PLACEHOLDER_SIZES = [
   [8, 5],
-  [12, 7],
-  [16, 9],
+  [11, 6],
+  [14, 8],
+  [17, 9],
   [20, 11],
+  [24, 13],
 ];
 
-const PLACEHOLDER_COLORS = ["#f2c14e", "#d0616a", "#6cae4e", "#3a8496"];
+const PLACEHOLDER_COLORS = [
+  "#f2c14e",
+  "#e08a3c",
+  "#d0616a",
+  "#6cae4e",
+  "#3a8496",
+  "#7b5ea7",
+];
 
 // 32x32 cells, kept above the sand strip and clear of the canvas edges.
 const WATER = { left: 2, right: 320 - CELL - 2, top: 12, bottom: 150 - CELL - 2 };
@@ -53,13 +62,13 @@ export function mulberry32(seed) {
     value = (value + 0x6d2b79f5) >>> 0;
     let t = value;
     t = Math.imul(t ^ (t >>> 15), 1 | t);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
 function clampStage(stage) {
-  return Math.max(0, Math.min(3, Number(stage) || 0));
+  return Math.max(0, Math.min(5, Number(stage) || 0));
 }
 
 export class FishSprite {
@@ -71,13 +80,14 @@ export class FishSprite {
 
     this.stage = 0;
     this.name = "";
-    this.spriteKey = "";
+    this.species = "goldfish";
+    this.equipped = {};
     this.stageName = "";
-    this.spriteConfig = spriteConfigFor(this.spriteKey);
     this.xp = 0;
     this.xpNeeded = 0;
     this.hunger = 0;
     this.level = 1;
+    this.bounds = { ...WATER };
 
     this.x = WATER.left;
     this.y = WATER.top;
@@ -85,8 +95,8 @@ export class FishSprite {
     this.setStats(data);
 
     // Seeded spawn point so fish don't all pile into the same corner.
-    this.x = WATER.left + this.random() * (WATER.right - WATER.left);
-    this.y = WATER.top + this.random() * (WATER.bottom - WATER.top);
+    this.x = this.bounds.left + this.random() * (this.bounds.right - this.bounds.left);
+    this.y = this.bounds.top + this.random() * (this.bounds.bottom - this.bounds.top);
     this.facing = this.random() < 0.5 ? -1 : 1;
     this.target = { x: this.x, y: this.y };
     this.waitUntil = 0;
@@ -103,16 +113,30 @@ export class FishSprite {
     this.xpNeeded = data.xp_needed ?? 0;
     this.hunger = data.hunger ?? 0;
     this.stageName = String(data.stage_name ?? "");
-    this.spriteKey = String(data.sprite_key ?? "");
-    this.spriteConfig = spriteConfigFor(this.spriteKey);
-    this.x = Math.max(WATER.left, Math.min(this.x, WATER.right));
-    this.y = Math.max(WATER.top, Math.min(this.y, WATER.bottom));
+    this.species = String(data.species ?? "goldfish");
+    this.equipped = data.equipped || {};
+    this.bounds = this.computeBounds();
+    this.x = Math.max(this.bounds.left, Math.min(this.x, this.bounds.right));
+    this.y = Math.max(this.bounds.top, Math.min(this.y, this.bounds.bottom));
+  }
+
+  /** Keep tall fish (seahorse) inside the water using the art bbox. */
+  computeBounds() {
+    const [, height] = bboxFor(this.species, this.stage);
+    const padY = Math.max(0, Math.round((CELL - height) / 2));
+    return {
+      left: WATER.left,
+      right: WATER.right,
+      top: WATER.top + padY,
+      bottom: WATER.bottom - padY,
+    };
   }
 
   pickTarget(now) {
+    const bounds = this.bounds;
     this.target = {
-      x: WATER.left + this.random() * (WATER.right - WATER.left),
-      y: WATER.top + this.random() * (WATER.bottom - WATER.top),
+      x: bounds.left + this.random() * (bounds.right - bounds.left),
+      y: bounds.top + this.random() * (bounds.bottom - bounds.top),
     };
     this.facing = this.target.x >= this.x ? 1 : -1;
     this.waitUntil = now + IDLE_MIN_MS + this.random() * (IDLE_MAX_MS - IDLE_MIN_MS);
@@ -149,26 +173,30 @@ export class FishSprite {
 
   draw(ctx, now, options = {}) {
     const { fontReady = false, flash = false, stageOverride = null } = options;
-    const row = stageOverride === null || stageOverride === undefined ? this.stage : stageOverride;
+    const row =
+      stageOverride === null || stageOverride === undefined
+        ? this.stage
+        : clampStage(stageOverride);
     const x = Math.round(this.x);
     const y = Math.round(this.y);
-    const config = this.spriteConfig;
-    const sheet = getImage(config.file);
+    const sheetFile = speciesFile(this.species);
+    const sheet = getImage(sheetFile);
 
     if (sheet) {
+      const frame = this.swimFrame(now);
       if (this.isMine) {
         // Cached silhouette, offset in four directions, for a 1px outline.
-        const outline = getSilhouette(config.file, row, OUTLINE_COLOR);
+        const outline = getSilhouette(sheetFile, row, OUTLINE_COLOR);
         for (const [dx, dy] of OUTLINE_OFFSETS) {
           drawSilhouette(ctx, outline, x + dx, y + dy, this.facing);
         }
       }
-      drawFish(ctx, config.file, row, this.swimFrame(now), x, y, this.facing);
+      drawComposite(ctx, this.species, row, frame, this.equipped, x, y, this.facing);
 
       if (flash) {
         drawSilhouette(
           ctx,
-          getSilhouette(config.file, row, FLASH_COLOR),
+          getSilhouette(sheetFile, row, FLASH_COLOR),
           x,
           y,
           this.facing
@@ -209,12 +237,16 @@ export class FishSprite {
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
 
+    const [, height] = bboxFor(this.species, this.stage);
+    const top = Math.round(
+      Math.max(7, cellY + Math.round((CELL - height) / 2) - 3)
+    );
+
     const text = this.truncate(ctx, this.name, 120);
     const labelWidth = ctx.measureText(text).width;
     const left = Math.round(
       Math.max(1, Math.min(cellX + CELL / 2 - labelWidth / 2, 320 - labelWidth - 1))
     );
-    const top = Math.round(Math.max(7, cellY - 3));
 
     ctx.fillStyle = LABEL_DARK;
     ctx.fillText(text, left - 1, top);

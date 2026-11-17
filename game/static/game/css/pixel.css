@@ -731,3 +731,331 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+/* Custom quizzes (Phase 8) --------------------------------------------- */
+
+.badge-active {
+  background: var(--plant);
+}
+
+.badge-draft {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8px;
+  line-height: 1.9;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 4px solid var(--ink);
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-table thead th {
+  background: var(--ink);
+  color: var(--gold);
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.data-table input[type="number"] {
+  width: 88px;
+}
+
+.error-list,
+.warning-list {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  font-size: 8px;
+  line-height: 2;
+}
+
+.error-list li {
+  color: var(--coral);
+}
+
+.warning-list li {
+  color: var(--gold);
+}
+
+.field-error {
+  margin: 4px 0 0;
+  color: var(--coral);
+  font-size: 8px;
+}
+
+.difficulty-badge,
+.quiz-difficulty {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--water-1);
+  border: 2px solid var(--ink);
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.quiz-difficulty {
+  color: var(--gold);
+}
+
+.difficulty-easy {
+  background: var(--plant);
+}
+
+.difficulty-medium {
+  background: var(--water-2);
+}
+
+.difficulty-hard {
+  background: var(--coral);
+  color: var(--ink);
+}
+
+.code,
+code {
+  padding: 0 4px;
+  background: var(--ink);
+  color: var(--gold);
+  font-family: inherit;
+  font-size: 8px;
+}
+
+/* Species picker and wardrobe (Phase 9) ------------------------------- */
+
+.species-picker {
+  margin: 0 0 20px;
+  padding: 16px;
+  border: 4px solid var(--water-1);
+}
+
+.species-picker legend {
+  padding: 0 8px;
+  font-size: 10px;
+}
+
+.species-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.species-option {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  grid-template-rows: auto auto;
+  gap: 2px 10px;
+  align-items: center;
+  padding: 10px;
+  background: var(--water-1);
+  border: 4px solid var(--ink);
+  cursor: pointer;
+}
+
+.species-option:has(input:checked) {
+  border-color: var(--gold);
+  background: var(--water-2);
+}
+
+.species-option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.species-option:focus-within {
+  outline: 4px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.species-thumb {
+  grid-row: span 2;
+  width: 64px;
+  height: 64px;
+  background-repeat: no-repeat;
+  background-size: 256px 384px;
+  background-position: 0 0;
+  image-rendering: pixelated;
+}
+
+.species-name {
+  font-size: 9px;
+  color: var(--cream);
+}
+
+.species-desc {
+  font-size: 7px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.wardrobe-dialog {
+  width: min(680px, 96vw);
+  max-width: 680px;
+}
+
+.wardrobe-body {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.wardrobe-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wardrobe-head h2 {
+  margin: 0;
+}
+
+.wardrobe-layout {
+  display: grid;
+  grid-template-columns: 192px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+#wardrobe-preview {
+  width: 192px;
+  height: 192px;
+  background: var(--water-0);
+  border: 4px solid var(--ink);
+  image-rendering: pixelated;
+}
+
+.wardrobe-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wardrobe-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wardrobe-tab.is-active {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.wardrobe-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.wardrobe-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  padding: 8px;
+  background: var(--water-1);
+  border: 4px solid var(--ink);
+  font-size: 8px;
+}
+
+.wardrobe-item-name {
+  color: var(--cream);
+}
+
+.wardrobe-item-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+}
+
+.wardrobe-price {
+  color: var(--gold);
+}
+
+.toast-action {
+  cursor: pointer;
+  outline: 4px solid var(--gold);
+  outline-offset: -4px;
+}
+
+@media (max-width: 640px) {
+  .wardrobe-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phase 9 palette additions (mirrors palette.json) */
+:root {
+  --c16: #4a5fc1;
+  --c17: #7b5ea7;
+  --c18: #b05fa0;
+  --c19: #e0607a;
+  --c20: #f08a5d;
+  --c21: #ffd166;
+  --c22: #7fd1b9;
+  --c23: #2f9e8f;
+  --c24: #1d6b7a;
+  --c25: #a8e06a;
+  --c26: #55883b;
+  --c27: #d9c7a7;
+  --c28: #a67c52;
+  --c29: #6e5a4b;
+  --c30: #cfd8e3;
+  --c31: #8796a8;
+}
+
+/* Art debug grid (staff only) */
+.art-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.art-species {
+  padding: 12px;
+  background: var(--water-0);
+  border: 4px solid var(--ink);
+}
+
+.art-species h2 {
+  margin: 0 0 8px;
+  font-size: 10px;
+}
+
+.art-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-top: 2px solid var(--water-1);
+  padding: 4px 0;
+}
+
+.art-label {
+  width: 180px;
+  font-size: 7px;
+  color: var(--muted);
+}
+
+.art-cell {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  background: var(--water-1);
+}

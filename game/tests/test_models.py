@@ -157,26 +157,26 @@ class FishValidationTests(TestCase):
 
 
 class EvolutionStageSeedingTests(TestCase):
-    def test_exactly_four_stages_are_seeded(self):
-        self.assertEqual(EvolutionStage.objects.count(), 4)
+    def test_six_stages_are_seeded(self):
+        self.assertEqual(EvolutionStage.objects.count(), 6)
 
-    def test_stage_rows_match_canonical_values(self):
+    def test_stage_rows_match_the_configured_thresholds(self):
         by_number = {
-            stage.stage_number: (stage.name, stage.min_level, stage.sprite_key)
+            stage.stage_number: (stage.min_level, stage.sprite_key)
             for stage in EvolutionStage.objects.all()
         }
         self.assertEqual(
             by_number,
             {
-                0: ("Fry", 1, "goldie_fry"),
-                1: ("Juvenile", 5, "goldie_juvenile"),
-                2: ("Adult", 15, "goldie_adult"),
-                3: ("Elder", 30, "goldie_elder"),
+                0: (1, ""),
+                1: (10, ""),
+                2: (25, ""),
+                3: (40, ""),
+                4: (55, ""),
+                5: (70, ""),
             },
         )
 
-    def test_sprite_keys_are_unique_and_reference_the_goldie_sheet(self):
-        keys = list(EvolutionStage.objects.values_list("sprite_key", flat=True))
-        self.assertEqual(len(keys), len(set(keys)))
-        for key in keys:
-            self.assertTrue(key.startswith("goldie_"), key)
+    def test_stage_names_are_unique(self):
+        names = list(EvolutionStage.objects.values_list("name", flat=True))
+        self.assertEqual(len(names), len(set(names)))

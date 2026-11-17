@@ -1,0 +1,458 @@
+{
+  "party_hat": {
+    "slot": "head",
+    "layer": "front",
+    "frames": 1,
+    "col": 0,
+    "row": 0,
+    "pivot": [
+      8,
+      15
+    ],
+    "small": {
+      "col": 0,
+      "row": 0,
+      "pivot": [
+        4,
+        7
+      ]
+    }
+  },
+  "flower": {
+    "slot": "head",
+    "layer": "front",
+    "frames": 1,
+    "col": 1,
+    "row": 0,
+    "pivot": [
+      8,
+      15
+    ],
+    "small": {
+      "col": 1,
+      "row": 0,
+      "pivot": [
+        4,
+        7
+      ]
+    }
+  },
+  "sailor_cap": {
+    "slot": "head",
+    "layer": "front",
+    "frames": 1,
+    "col": 2,
+    "row": 0,
+    "pivot": [
+      8,
+      15
+    ],
+    "small": {
+      "col": 2,
+      "row": 0,
+      "pivot": [
+        4,
+        7
+      ]
+    }
+  },
+  "top_hat": {
+    "slot": "head",
+    "layer": "front",
+    "frames": 1,
+    "col": 3,
+    "row": 0,
+    "pivot": [
+      8,
+      15
+    ],
+    "small": {
+      "col": 3,
+      "row": 0,
+      "pivot": [
+        4,
+        7
+      ]
+    }
+  },
+  "wizard_hat": {
+    "slot": "head",
+    "layer": "front",
+    "frames": 1,
+    "col": 4,
+    "row": 0,
+    "pivot": [
+      8,
+      15
+    ],
+    "small": {
+      "col": 4,
+      "row": 0,
+      "pivot": [
+        4,
+        7
+      ]
+    }
+  },
+  "golden_crown": {
+    "slot": "head",
+    "layer": "front",
+    "frames": 1,
+    "col": 5,
+    "row": 0,
+    "pivot": [
+      8,
+      15
+    ],
+    "small": {
+      "col": 5,
+      "row": 0,
+      "pivot": [
+        4,
+        7
+      ]
+    }
+  },
+  "round_glasses": {
+    "slot": "face",
+    "layer": "front",
+    "frames": 1,
+    "col": 0,
+    "row": 1,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 0,
+      "row": 1,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "heart_glasses": {
+    "slot": "face",
+    "layer": "front",
+    "frames": 1,
+    "col": 1,
+    "row": 1,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 1,
+      "row": 1,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "star_shades": {
+    "slot": "face",
+    "layer": "front",
+    "frames": 1,
+    "col": 2,
+    "row": 1,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 2,
+      "row": 1,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "snorkel_mask": {
+    "slot": "face",
+    "layer": "front",
+    "frames": 1,
+    "col": 3,
+    "row": 1,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 3,
+      "row": 1,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "fancy_moustache": {
+    "slot": "face",
+    "layer": "front",
+    "frames": 1,
+    "col": 4,
+    "row": 1,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 4,
+      "row": 1,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "rainbow_goggles": {
+    "slot": "face",
+    "layer": "front",
+    "frames": 1,
+    "col": 5,
+    "row": 1,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 5,
+      "row": 1,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "red_bow_tie": {
+    "slot": "body",
+    "layer": "front",
+    "frames": 1,
+    "col": 0,
+    "row": 2,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 0,
+      "row": 2,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "striped_scarf": {
+    "slot": "body",
+    "layer": "front",
+    "frames": 1,
+    "col": 1,
+    "row": 2,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 1,
+      "row": 2,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "pearl_necklace": {
+    "slot": "body",
+    "layer": "front",
+    "frames": 1,
+    "col": 2,
+    "row": 2,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 2,
+      "row": 2,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "gold_medal": {
+    "slot": "body",
+    "layer": "front",
+    "frames": 1,
+    "col": 3,
+    "row": 2,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 3,
+      "row": 2,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "superhero_cape": {
+    "slot": "body",
+    "layer": "behind",
+    "frames": 1,
+    "col": 4,
+    "row": 2,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 4,
+      "row": 2,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "life_ring": {
+    "slot": "body",
+    "layer": "front",
+    "frames": 1,
+    "col": 5,
+    "row": 2,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 5,
+      "row": 2,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "tail_ribbon": {
+    "slot": "tail",
+    "layer": "front",
+    "frames": 1,
+    "col": 0,
+    "row": 3,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 0,
+      "row": 3,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "jingle_bell": {
+    "slot": "tail",
+    "layer": "front",
+    "frames": 1,
+    "col": 1,
+    "row": 3,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 1,
+      "row": 3,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "rainbow_fin_stripe": {
+    "slot": "tail",
+    "layer": "front",
+    "frames": 1,
+    "col": 2,
+    "row": 3,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 2,
+      "row": 3,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "mini_flag": {
+    "slot": "tail",
+    "layer": "front",
+    "frames": 1,
+    "col": 3,
+    "row": 3,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 3,
+      "row": 3,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "seashell_clip": {
+    "slot": "tail",
+    "layer": "front",
+    "frames": 1,
+    "col": 4,
+    "row": 3,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 4,
+      "row": 3,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  },
+  "sparkle_trail": {
+    "slot": "tail",
+    "layer": "front",
+    "frames": 4,
+    "col": 0,
+    "row": 4,
+    "pivot": [
+      8,
+      8
+    ],
+    "small": {
+      "col": 0,
+      "row": 4,
+      "pivot": [
+        4,
+        4
+      ]
+    }
+  }
+}

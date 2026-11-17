@@ -24,8 +24,12 @@
               data-feed-url="{% url 'game:tank_feed' tank.pk %}"
               data-quiz-next-url="{% url 'game:tank_quiz_next' tank.pk %}"
               data-quiz-answer-url="{% url 'game:tank_quiz_answer' tank.pk %}"
+              data-wardrobe-state-url="{% url 'game:wardrobe_state' tank.pk %}"
+              data-wardrobe-equip-url="{% url 'game:wardrobe_equip' tank.pk %}"
+              data-wardrobe-buy-url="{% url 'game:wardrobe_buy' %}"
               data-tanks-url="{% url 'game:tank_list' %}"
               data-sprite-base="{% static 'game/sprites/' %}"
+              data-art-base="{% static 'game/data/' %}"
               aria-label="Tank view"></canvas>
       <div class="tank-alerts">
         <span id="reconnect-indicator" class="badge" hidden>reconnecting…</span>
@@ -57,6 +61,12 @@
 
         <button type="button" id="feed-button" class="btn feed-button" disabled>Feed</button>
         <p class="muted" id="feed-hint"></p>
+        <p class="muted" id="quiz-source"></p>
+        <div class="actions">
+          <button type="button" id="wardrobe-button" class="btn btn-small btn-secondary">
+            Wardrobe
+          </button>
+        </div>
 
         <form method="post" action="{% url 'game:tank_rename_me' tank.pk %}" class="rename-form">
           {% csrf_token %}
@@ -98,10 +108,32 @@
     </aside>
   </div>
 
+  <dialog id="wardrobe-dialog" class="pixel-dialog wardrobe-dialog" aria-labelledby="wardrobe-title">
+    <div class="wardrobe-body">
+      <div class="wardrobe-head">
+        <h2 id="wardrobe-title">Wardrobe</h2>
+        <span class="badge" id="wardrobe-pearls">0 pearls</span>
+      </div>
+      <div class="wardrobe-layout">
+        <canvas id="wardrobe-preview" width="64" height="64"
+                aria-label="Preview of your fish with its accessories"></canvas>
+        <div class="wardrobe-panel">
+          <div class="wardrobe-tabs" id="wardrobe-tabs" role="tablist" aria-label="Accessory slots"></div>
+          <div class="wardrobe-list" id="wardrobe-list"></div>
+        </div>
+      </div>
+      <p class="quiz-result" id="wardrobe-status" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" id="wardrobe-close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="quiz-dialog" class="pixel-dialog quiz-dialog" aria-labelledby="quiz-prompt">
     <div class="quiz-body">
       <div class="quiz-meta">
         <span class="quiz-subject" id="quiz-subject"></span>
+        <span class="quiz-difficulty" id="quiz-difficulty" hidden></span>
         <span class="quiz-feeds" id="quiz-feeds"></span>
       </div>
       <h2 class="quiz-prompt" id="quiz-prompt">Loading question…</h2>

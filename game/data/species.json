@@ -1,0 +1,107 @@
+[
+  {
+    "key": "goldfish",
+    "name": "Goldfish",
+    "description": "A round orange fish with a long, flowing tail.",
+    "order": 1,
+    "stage_names": ["Goldie Egg", "Little Goldie", "Bubble Goldie", "Royal Goldie", "Grand Goldie", "Sun Goldie"]
+  },
+  {
+    "key": "clownfish",
+    "name": "Clownfish",
+    "description": "An orange fish with bright white stripes.",
+    "order": 2,
+    "stage_names": ["Clown Egg", "Tiny Clown", "Stripe Clown", "Banded Clown", "Coral Clown", "Star Clown"]
+  },
+  {
+    "key": "bluetang",
+    "name": "Blue Tang",
+    "description": "A flat blue fish with a sunny yellow tail.",
+    "order": 3,
+    "stage_names": ["Tang Egg", "Tiny Tang", "Blue Tang", "Regal Tang", "Royal Tang", "Ocean Tang"]
+  },
+  {
+    "key": "pufferfish",
+    "name": "Pufferfish",
+    "description": "A round fish that puffs up when it is happy.",
+    "order": 4,
+    "stage_names": ["Puffer Egg", "Little Puff", "Round Puff", "Spike Puff", "Big Puff", "Grand Puff"]
+  },
+  {
+    "key": "angelfish",
+    "name": "Angelfish",
+    "description": "A tall silver fish with long, pretty fins.",
+    "order": 5,
+    "stage_names": ["Angel Egg", "Tiny Angel", "Stripe Angel", "Tall Angel", "Silver Angel", "Sky Angel"]
+  },
+  {
+    "key": "betta",
+    "name": "Betta",
+    "description": "A red fish with huge, flowing fins.",
+    "order": 6,
+    "stage_names": ["Betta Egg", "Tiny Betta", "Flame Betta", "Velvet Betta", "Royal Betta", "Jewel Betta"]
+  },
+  {
+    "key": "guppy",
+    "name": "Guppy",
+    "description": "A small fish with a big tail full of spots.",
+    "order": 7,
+    "stage_names": ["Guppy Egg", "Tiny Guppy", "Spot Guppy", "Fan Guppy", "Rainbow Guppy", "Comet Guppy"]
+  },
+  {
+    "key": "koi",
+    "name": "Koi",
+    "description": "A long white fish with orange patches.",
+    "order": 8,
+    "stage_names": ["Koi Egg", "Baby Koi", "Patch Koi", "Pond Koi", "Lucky Koi", "Dragon Koi"]
+  },
+  {
+    "key": "seahorse",
+    "name": "Seahorse",
+    "description": "A tiny seahorse who likes to stand up straight.",
+    "order": 9,
+    "stage_names": ["Sea Egg", "Tiny Seahorse", "Curl Seahorse", "Coral Seahorse", "Gold Seahorse", "Pearl Seahorse"]
+  },
+  {
+    "key": "lionfish",
+    "name": "Lionfish",
+    "description": "A striped fish with fancy fan-shaped fins.",
+    "order": 10,
+    "stage_names": ["Lion Egg", "Tiny Lion", "Stripe Lion", "Fan Lion", "Regal Lion", "Sun Lion"]
+  },
+  {
+    "key": "neontetra",
+    "name": "Neon Tetra",
+    "description": "A tiny fish with a glowing blue stripe.",
+    "order": 11,
+    "stage_names": ["Neon Egg", "Tiny Neon", "Glow Tetra", "Bright Neon", "Flash Neon", "Star Neon"]
+  },
+  {
+    "key": "boxfish",
+    "name": "Boxfish",
+    "description": "A boxy yellow fish with little dark dots.",
+    "order": 12,
+    "stage_names": ["Box Egg", "Tiny Box", "Dot Box", "Square Box", "Sunny Box", "Golden Box"]
+  },
+  {
+    "key": "mandarinfish",
+    "name": "Mandarinfish",
+    "description": "A colorful fish with wavy blue and orange swirls.",
+    "order": 13,
+    "stage_names": ["Mandy Egg", "Tiny Mandy", "Swirl Mandy", "Bright Mandy", "Grand Mandy", "Jewel Mandy"]
+  },
+  {
+    "key": "sailfish",
+    "name": "Sailfish",
+    "description": "A fast blue fish with a big sail on its back.",
+    "order": 14,
+    "stage_names": ["Sail Egg", "Tiny Sail", "Blue Sail", "Fast Sail", "Grand Sail", "Storm Sail"]
+  },
+  {
+    "key": "anglerfish",
+    "name": "Anglerfish",
+    "description": "A dark round fish with a friendly glowing light.",
+    "order": 15,
+    "stage_names": ["Angler Egg", "Tiny Angler", "Glow Angler", "Deep Angler", "Bright Angler", "Star Angler"]
+  }
+]

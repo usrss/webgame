@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Settings · {{ tank.name }}{% endblock %}
 
 {% block content %}
@@ -74,10 +75,68 @@
     </section>
 
     <section class="panel">
-      <h2>Quiz questions</h2>
+      <h2>Quiz source</h2>
+      <p class="muted">
+        Use the built-in questions, or one of your own uploads. A tank uses one
+        source at a time.
+      </p>
+      <form method="post" action="{% url 'game:tank_quiz_settings' tank.pk %}"
+            class="pixel-form quiz-source-form" id="quiz-source-form">
+        {% csrf_token %}
+        <div class="field">
+          <label for="quiz-source">Source</label>
+          <select id="quiz-source" name="source">
+            {% for key, label in quiz_sources %}
+              <option value="{{ key }}"{% if key == tank.quiz_source %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field" id="quiz-set-field">
+          <label for="quiz-set">My quiz</label>
+          <select id="quiz-set" name="quiz_set">
+            <option value="">— pick a quiz —</option>
+            {% for quiz_set in active_sets %}
+              <option value="{{ quiz_set.pk }}"{% if quiz_set.pk == tank.quiz_set_id %} selected{% endif %}>{{ quiz_set.name }}</option>
+            {% empty %}
+              <option value="" disabled>No active quizzes yet</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="quiz-mode">Difficulty mode</label>
+          <select id="quiz-mode" name="difficulty_mode">
+            {% for key, label in quiz_modes %}
+              <option value="{{ key }}"{% if key == tank.quiz_difficulty_mode %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field" id="quiz-fixed-field">
+          <label for="quiz-fixed">Fixed band</label>
+          <select id="quiz-fixed" name="fixed_difficulty">
+            <option value="">— pick a band —</option>
+            {% for key, label in difficulties %}
+              <option value="{{ key }}"{% if key == tank.quiz_fixed_difficulty %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if quiz_pool_warning %}
+          <p class="field-error" role="status">
+            This setup currently has no questions: add a band for the selected
+            difficulty, or pick another quiz.
+          </p>
+        {% endif %}
+        <div class="actions">
+          <button type="submit" class="btn btn-small">Save quiz source</button>
+          <a class="btn btn-small btn-secondary" href="{% url 'game:quiz_set_list' %}">Manage my quizzes</a>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Built-in questions</h2>
       <p class="muted">
         Players earn a feed by answering one question correctly. New questions
-        use the grade and subjects below.
+        use the grade and subjects below (built-in source only).
       </p>
       <form method="post" action="{% url 'game:tank_quiz_settings' tank.pk %}"
             class="pixel-form quiz-settings-form">
@@ -125,5 +184,8 @@
 
   <div class="actions">
     <a class="btn btn-secondary" href="{% url 'game:tank_detail' tank.pk %}">Back to tank</a>
+    <a class="btn btn-secondary" href="{% url 'game:quiz_set_list' %}">My quizzes</a>
   </div>
+
+  <script type="module" src="{% static 'game/js/quiz_settings.js' %}"></script>
 {% endblock %}

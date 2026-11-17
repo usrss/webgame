@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}My quizzes · Pixel Aquarium{% endblock %}
+
+{% block content %}
+  <div class="tank-header">
+    <h1>My quizzes</h1>
+    <p class="muted">
+      Upload a quiz, choose difficulty bands, then point one of your tanks at it.
+      Only you can see and use these quizzes.
+    </p>
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="{% url 'game:quiz_upload' %}">Upload a quiz</a>
+    <a class="btn btn-secondary" href="{% url 'game:tank_list' %}">Back to my tanks</a>
+  </div>
+
+  <section class="panel">
+    <h2>Uploaded ({{ rows|length }} / {{ max_sets }})</h2>
+    {% if rows %}
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Status</th>
+              <th scope="col">Items</th>
+              <th scope="col">Bands</th>
+              <th scope="col">Uploaded</th>
+              <th scope="col">Used by</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td><a href="{% url 'game:quiz_set_detail' row.quiz_set.pk %}">{{ row.quiz_set.name }}</a></td>
+                <td><span class="badge badge-{{ row.quiz_set.status }}">{{ row.quiz_set.get_status_display }}</span></td>
+                <td>{{ row.active_total }} active / {{ row.total }}</td>
+                <td class="muted">{{ row.bands }}</td>
+                <td class="muted">{{ row.quiz_set.created_at|date:"Y-m-d" }}</td>
+                <td class="muted">
+                  {% for tank in row.tanks %}{{ tank.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No quizzes yet. Download a template and upload your first one.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>Templates</h2>
+    <p class="muted">Each template has three sample items in the expected layout.</p>
+    <div class="actions">
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'csv' %}">CSV</a>
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'xlsx' %}">Excel (.xlsx)</a>
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'txt' %}">Text (.txt)</a>
+      <a class="btn btn-small" href="{% url 'game:quiz_template' 'docx' %}">Word (.docx)</a>
+    </div>
+  </section>
+{% endblock %}

@@ -25,7 +25,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "192.168.101.3",
+]
 
 
 # Application definition
@@ -128,7 +132,11 @@ GAME_SETTINGS = {
     "XP_PER_FEED": 10,
     "FEED_COOLDOWN_SECONDS": 300,
     "XP_PER_LEVEL_STEP": 50,
-    "MAX_LEVEL": 50,
+    "MAX_LEVEL": 75,
+    # Six forms per species (Phase 9): stage numbers are the list indexes.
+    "EVOLUTION_LEVELS": [1, 10, 25, 40, 55, 70],
+    "PEARLS_PER_FEED": 1,
+    "PEARLS_EVOLUTION_BONUS": 25,
     "HUNGER_FULL_SECONDS": 8 * 3600,
     "JOIN_CODE_LENGTH": 6,
     "DEFAULT_TANK_CAPACITY": 12,
@@ -156,6 +164,23 @@ GAME_SETTINGS = {
     "QUIZ_NEXT_RATE_LIMIT_WINDOW_SECONDS": 60,
     "QUIZ_ANSWER_RATE_LIMIT_ATTEMPTS": 30,
     "QUIZ_ANSWER_RATE_LIMIT_WINDOW_SECONDS": 60,
+    # Custom quiz uploads (Phase 8).
+    "QUIZ_UPLOAD_MAX_BYTES_TEXT": 1_000_000,
+    "QUIZ_UPLOAD_MAX_BYTES_ZIP": 2_000_000,
+    "QUIZ_ZIP_MAX_UNCOMPRESSED_BYTES": 20_000_000,
+    "QUIZ_ZIP_MAX_ENTRIES": 200,
+    "QUIZ_SET_MAX_QUESTIONS": 500,
+    "QUIZ_SETS_PER_USER": 10,
+    "QUIZ_MIN_QUESTIONS_TO_ACTIVATE": 10,
+    "QUIZ_DRAFT_TTL_HOURS": 24,
+    "QUIZ_UPLOADS_PER_HOUR": 10,
+    "QUIZ_PROMPT_MAX": 300,
+    "QUIZ_CHOICE_MAX": 100,
+    "QUIZ_EXPLANATION_MAX": 200,
+    "QUIZ_MIN_BAND_SIZE_WARN": 5,
+    # Wardrobe endpoints (Phase 9).
+    "WARDROBE_RATE_LIMIT_ATTEMPTS": 30,
+    "WARDROBE_RATE_LIMIT_WINDOW_SECONDS": 60,
 }
 
 

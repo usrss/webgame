@@ -406,6 +406,7 @@ class QuizEndpointTests(TestCase):
                 "grade",
                 "prompt",
                 "choices",
+                "difficulty",
                 "expires_in",
                 "remaining_today",
                 "cap",
@@ -609,7 +610,17 @@ class QuizStateTests(TestCase):
 
         self.assertEqual(
             set(quiz),
-            {"enabled", "only_feeding", "remaining_today", "cap", "grade", "subjects"},
+            {
+                "enabled",
+                "only_feeding",
+                "remaining_today",
+                "cap",
+                "grade",
+                "subjects",
+                "source",
+                "set_name",
+                "difficulty_mode",
+            },
         )
         self.assertIs(quiz["enabled"], True)
         self.assertEqual(quiz["cap"], settings.GAME_SETTINGS["QUIZ_DAILY_CORRECT_CAP"])

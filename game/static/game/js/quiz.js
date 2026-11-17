@@ -22,6 +22,11 @@ const SUBJECT_LABELS = {
 
 const KEY_LABELS = ["1", "2", "3", "4", "5", "6"];
 
+// Custom quizzes label the band instead of a school grade. Stars are a visual
+// echo of the text label, never the only signal.
+const DIFFICULTY_LABELS = { easy: "Easy", medium: "Medium", hard: "Hard" };
+const DIFFICULTY_STARS = { easy: 1, medium: 2, hard: 3 };
+
 function friendlyError(error) {
   if (error instanceof ApiError) {
     const code = error.data && error.data.error;
@@ -45,7 +50,9 @@ export function initQuiz({ nextUrl, answerUrl, onFeed }) {
   }
 
   const subjectEl = document.getElementById("quiz-subject");
+  const difficultyEl = document.getElementById("quiz-difficulty");
   const feedsEl = document.getElementById("quiz-feeds");
+  const sourceEl = document.getElementById("quiz-source");
   const promptEl = document.getElementById("quiz-prompt");
   const choicesEl = document.getElementById("quiz-choices");
   const resultEl = document.getElementById("quiz-result");
@@ -61,6 +68,8 @@ export function initQuiz({ nextUrl, answerUrl, onFeed }) {
   let busy = false;
   let lastFocused = null;
   let retryTimer = null;
+  let source = "builtin";
+  let setName = "";
 
   const state = {
     setState(quiz) {
@@ -71,6 +80,9 @@ export function initQuiz({ nextUrl, answerUrl, onFeed }) {
       onlyFeeding = Boolean(quiz.only_feeding);
       remaining = Number(quiz.remaining_today) || 0;
       cap = Number(quiz.cap) || 0;
+      source = quiz.source === "custom" ? "custom" : "builtin";
+      setName = quiz.set_name || "";
+      updateSourceLabel();
     },
     open,
     get onlyFeeding() {
@@ -84,9 +96,38 @@ export function initQuiz({ nextUrl, answerUrl, onFeed }) {
     },
   };
 
+  function updateSourceLabel() {
+    if (!sourceEl) {
+      return;
+    }
+    sourceEl.textContent =
+      source === "custom"
+        ? `Quiz: ${setName || "your uploaded quiz"}`
+        : "Quiz: built-in questions";
+  }
+
   function updateMeta() {
-    const subject = attempt ? SUBJECT_LABELS[attempt.subject] || "Question" : "";
-    subjectEl.textContent = attempt ? `${subject} · Grade ${attempt.grade}` : "";
+    const subject = attempt
+      ? attempt.subject === "custom"
+        ? "Your quiz"
+        : SUBJECT_LABELS[attempt.subject] || "Question"
+      : "";
+    const grade = attempt && attempt.grade > 0 ? ` · Grade ${attempt.grade}` : "";
+    subjectEl.textContent = attempt ? `${subject}${grade}` : "";
+
+    if (difficultyEl) {
+      const key = attempt && attempt.difficulty;
+      const label = DIFFICULTY_LABELS[key];
+      if (label) {
+        difficultyEl.hidden = false;
+        difficultyEl.textContent = `${label} ${"★".repeat(DIFFICULTY_STARS[key])}`;
+        difficultyEl.dataset.difficulty = key;
+      } else {
+        difficultyEl.hidden = true;
+        delete difficultyEl.dataset.difficulty;
+      }
+    }
+
     feedsEl.textContent = cap
       ? `${remaining} of ${cap} feeds left today`
       : `${remaining} feeds left today`;

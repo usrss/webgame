@@ -34,8 +34,53 @@ SUBJECTS = [
     ("general", "General knowledge"),
 ]
 SUBJECT_KEYS = [key for key, _label in SUBJECTS]
+# Custom quiz questions are stored in the same table but are not part of the
+# built-in subject picker, so they get their own subject key.
+QUESTION_SUBJECTS = [*SUBJECTS, ("custom", "Custom quiz")]
 QUIZ_GRADE_MIN = 1
 QUIZ_GRADE_MAX = 6
+# Custom questions are not tied to a school grade; 0 means "custom".
+QUESTION_GRADE_MIN = 0
+
+# Custom quizzes (Phase 8).
+DIFFICULTIES = [("easy", "Easy"), ("medium", "Medium"), ("hard", "Hard")]
+DIFFICULTY_KEYS = [key for key, _label in DIFFICULTIES]
+DIFFICULTY_LABELS = dict(DIFFICULTIES)
+# Which band a fish's evolution stage uses by default. Stages 2 and 3 are both
+# "hard", matching the canonical four-stage progression.
+STAGE_DIFFICULTY = {
+    0: "easy",
+    1: "easy",
+    2: "medium",
+    3: "medium",
+    4: "hard",
+    5: "hard",
+}
+QUIZ_SOURCES = [("builtin", "Built-in"), ("custom", "My quiz")]
+QUIZ_SOURCE_KEYS = [key for key, _label in QUIZ_SOURCES]
+QUIZ_DIFFICULTY_MODES = [
+    ("by_stage", "By fish stage"),
+    ("fixed", "Fixed band"),
+    ("all", "All bands"),
+]
+QUIZ_DIFFICULTY_MODE_KEYS = [key for key, _label in QUIZ_DIFFICULTY_MODES]
+QUIZ_SET_STATUSES = [("draft", "Draft"), ("active", "Active")]
+
+# Species, evolution and accessories (Phase 9).
+SPECIES_STAGE_COUNT = len(settings.GAME_SETTINGS["EVOLUTION_LEVELS"])
+SLOTS = [("head", "Head"), ("face", "Face"), ("body", "Body"), ("tail", "Tail")]
+SLOT_KEYS = [key for key, _label in SLOTS]
+RARITY = [("common", "Common"), ("uncommon", "Uncommon"), ("rare", "Rare")]
+RARITY_KEYS = [key for key, _label in RARITY]
+UNLOCK = [
+    ("starter", "Starter"),
+    ("shop", "Shop"),
+    ("evolution", "Evolution gift"),
+]
+UNLOCK_KEYS = [key for key, _label in UNLOCK]
+QUIZ_PROMPT_MAX = settings.GAME_SETTINGS["QUIZ_PROMPT_MAX"]
+QUIZ_CHOICE_MAX = settings.GAME_SETTINGS["QUIZ_CHOICE_MAX"]
+QUIZ_EXPLANATION_MAX = settings.GAME_SETTINGS["QUIZ_EXPLANATION_MAX"]
 
 
 def default_quiz_subjects() -> list[str]:
@@ -68,6 +113,20 @@ class Tank(models.Model):
         validators=[MinValueValidator(QUIZ_GRADE_MIN), MaxValueValidator(QUIZ_GRADE_MAX)],
     )
     quiz_subjects = models.JSONField(default=default_quiz_subjects)
+    # Custom quiz configuration (Phase 8). Built-in questions are the default;
+    # a tank uses either the built-in bank or exactly one custom quiz.
+    quiz_source = models.CharField(
+        max_length=7, choices=QUIZ_SOURCES, default="builtin"
+    )
+    quiz_set = models.ForeignKey(
+        "QuizSet", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    quiz_difficulty_mode = models.CharField(
+        max_length=8, choices=QUIZ_DIFFICULTY_MODES, default="by_stage"
+    )
+    quiz_fixed_difficulty = models.CharField(
+        max_length=6, choices=DIFFICULTIES, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -89,8 +148,37 @@ class Tank(models.Model):
             unknown = [value for value in subjects if value not in SUBJECT_KEYS]
             if unknown:
                 errors["quiz_subjects"] = f"Unknown subject(s): {', '.join(map(str, unknown))}."
+
+        # Custom quiz configuration (Phase 8).
+        if self.quiz_source not in QUIZ_SOURCE_KEYS:
+            errors["quiz_source"] = "Unknown quiz source."
+        if self.quiz_source == "custom":
+            if self.quiz_set_id is None:
+                errors["quiz_set"] = "Pick one of your quizzes."
+            elif not self._quiz_set_is_usable():
+                errors["quiz_set"] = "That quiz is not active or does not belong to you."
+        if self.quiz_difficulty_mode not in QUIZ_DIFFICULTY_MODE_KEYS:
+            errors["quiz_difficulty_mode"] = "Unknown difficulty mode."
+        if self.quiz_difficulty_mode == "fixed":
+            if self.quiz_fixed_difficulty not in DIFFICULTY_KEYS:
+                errors["quiz_fixed_difficulty"] = "Pick a difficulty band."
+            elif self.quiz_set_id and not self.quiz_set.bands.filter(
+                difficulty=self.quiz_fixed_difficulty
+            ).exists():
+                errors["quiz_fixed_difficulty"] = (
+                    "That quiz has no band with this difficulty."
+                )
         if errors:
             raise ValidationError(errors)
+
+    def _quiz_set_is_usable(self) -> bool:
+        """True when the attached set exists, is active and belongs to the owner."""
+        quiz_set = self.quiz_set
+        return bool(
+            quiz_set is not None
+            and quiz_set.status == "active"
+            and quiz_set.owner_id == self.owner_id
+        )
 
     def save(self, *args, **kwargs):
         """Insert the tank, retrying with a fresh join code on collision.
@@ -130,7 +218,9 @@ class EvolutionStage(models.Model):
     stage_number = models.PositiveSmallIntegerField(unique=True)
     name = models.CharField(max_length=30)
     min_level = models.PositiveSmallIntegerField()
-    sprite_key = models.CharField(max_length=30)
+    # Kept for backwards compatibility with Phase 1-4 data; Phase 9 chooses the
+    # sprite from species + stage, so this field is no longer read by the game.
+    sprite_key = models.CharField(max_length=30, blank=True, default="")
 
     class Meta:
         ordering = ["stage_number"]
@@ -139,9 +229,59 @@ class EvolutionStage(models.Model):
         return f"Stage {self.stage_number}: {self.name}"
 
 
+class FishSpecies(models.Model):
+    """One of the 15 selectable fish species (Phase 9)."""
+
+    key = models.SlugField(unique=True)
+    name = models.CharField(max_length=30)
+    description = models.CharField(max_length=120)
+    order = models.PositiveSmallIntegerField()
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name_plural = "fish species"
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class SpeciesStageName(models.Model):
+    """The kid-friendly name of one species at one evolution stage."""
+
+    species = models.ForeignKey(
+        FishSpecies, on_delete=models.CASCADE, related_name="stage_names"
+    )
+    stage_number = models.PositiveSmallIntegerField()
+    name = models.CharField(max_length=14)
+
+    class Meta:
+        ordering = ["species", "stage_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["species", "stage_number"], name="uniq_species_stage"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.species.name} stage {self.stage_number}: {self.name}"
+
+
+def default_species():
+    """Fallback species id so legacy ``Fish.objects.create`` calls stay valid."""
+    return (
+        FishSpecies.objects.filter(key="goldfish")
+        .values_list("pk", flat=True)
+        .first()
+    )
+
+
 class Fish(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="fish")
     tank = models.ForeignKey(Tank, on_delete=models.CASCADE, related_name="fish")
+    species = models.ForeignKey(
+        FishSpecies, on_delete=models.PROTECT, related_name="+", default=default_species
+    )
     name = models.CharField(max_length=24)
     xp = models.PositiveIntegerField(default=0)
     level = models.PositiveSmallIntegerField(default=1)
@@ -192,22 +332,102 @@ class TankBan(models.Model):
         return f"{self.user} banned from {self.tank}"
 
 
-class Question(models.Model):
-    """One hand-written bank question (math questions are generated, not stored)."""
+class QuizSet(models.Model):
+    """One teacher-uploaded quiz (Phase 8).
 
-    subject = models.CharField(max_length=20, choices=SUBJECTS)
+    Only the parsed questions are stored; the uploaded file itself is never
+    written to disk or to the database.
+    """
+
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="quiz_sets")
+    name = models.CharField(max_length=60)
+    status = models.CharField(max_length=10, choices=QUIZ_SET_STATUSES, default="draft")
+    source_filename = models.CharField(max_length=100, blank=True)
+    source_format = models.CharField(max_length=5, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        if not (self.name or "").strip():
+            raise ValidationError({"name": "Give the quiz a name."})
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.status})"
+
+
+class QuizBand(models.Model):
+    """An item-number range (inclusive) that maps to one difficulty."""
+
+    quiz_set = models.ForeignKey(QuizSet, on_delete=models.CASCADE, related_name="bands")
+    difficulty = models.CharField(max_length=6, choices=DIFFICULTIES)
+    start = models.PositiveIntegerField()
+    end = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["start"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["quiz_set", "difficulty"], name="one_band_per_difficulty"
+            ),
+        ]
+
+    def clean(self):
+        errors = {}
+        if self.start < 1:
+            errors["start"] = "The first item number must be 1 or more."
+        if self.end < self.start:
+            errors["end"] = "The last item number must not be smaller than the first."
+        if not errors and self.quiz_set_id:
+            overlap = (
+                QuizBand.objects.filter(quiz_set_id=self.quiz_set_id)
+                .exclude(pk=self.pk)
+                .filter(start__lte=self.end, end__gte=self.start)
+            )
+            if overlap.exists():
+                errors["start"] = "This range overlaps another difficulty band."
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self) -> str:
+        return f"{self.get_difficulty_display()} {self.start}-{self.end}"
+
+
+class Question(models.Model):
+    """One bank or custom-quiz question (math questions are generated, not stored)."""
+
+    subject = models.CharField(max_length=20, choices=QUESTION_SUBJECTS)
     grade = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(QUIZ_GRADE_MIN), MaxValueValidator(QUIZ_GRADE_MAX)]
+        validators=[
+            MinValueValidator(QUESTION_GRADE_MIN),
+            MaxValueValidator(QUIZ_GRADE_MAX),
+        ]
     )
-    prompt = models.CharField(max_length=200)
+    prompt = models.CharField(max_length=QUIZ_PROMPT_MAX)
     choices = models.JSONField()
     correct_index = models.PositiveSmallIntegerField()
-    explanation = models.CharField(max_length=200, blank=True)
+    explanation = models.CharField(max_length=QUIZ_EXPLANATION_MAX, blank=True)
     active = models.BooleanField(default=True)
+    # Custom quiz linkage (Phase 8). Built-in questions keep all three blank.
+    quiz_set = models.ForeignKey(
+        QuizSet,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="questions",
+    )
+    item_number = models.PositiveIntegerField(null=True, blank=True)
+    difficulty = models.CharField(max_length=6, choices=DIFFICULTIES, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["subject", "grade", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["quiz_set", "item_number"], name="one_item_number_per_set"
+            ),
+        ]
 
     def clean(self):
         """A question needs 3-4 distinct, non-empty choices and a valid answer."""
@@ -220,18 +440,31 @@ class Question(models.Model):
         ):
             errors["choices"] = "Provide 3 or 4 non-empty answer choices."
         else:
-            if len(set(choices)) != len(choices):
+            # Distinct ignoring case, so "Paris" and "paris" are a mistake.
+            if len({choice.strip().casefold() for choice in choices}) != len(choices):
                 errors["choices"] = "Answer choices must be distinct."
-            if any(len(choice) > 100 for choice in choices):
-                errors["choices"] = "Answer choices cannot exceed 100 characters."
+            if any(len(choice) > QUIZ_CHOICE_MAX for choice in choices):
+                errors[
+                    "choices"
+                ] = f"Answer choices cannot exceed {QUIZ_CHOICE_MAX} characters."
         if not isinstance(self.correct_index, int) or not 0 <= self.correct_index <= 3:
             errors["correct_index"] = "The correct answer must be one of the choices."
         elif isinstance(choices, list) and self.correct_index >= len(choices):
             errors["correct_index"] = "The correct answer must be one of the choices."
+        if not (self.prompt or "").strip():
+            errors["prompt"] = "The question text cannot be empty."
+        elif len(self.prompt) > QUIZ_PROMPT_MAX:
+            errors["prompt"] = f"The question cannot exceed {QUIZ_PROMPT_MAX} characters."
+        if len(self.explanation or "") > QUIZ_EXPLANATION_MAX:
+            errors[
+                "explanation"
+            ] = f"The explanation cannot exceed {QUIZ_EXPLANATION_MAX} characters."
         if errors:
             raise ValidationError(errors)
 
     def __str__(self) -> str:
+        if self.quiz_set_id:
+            return f"{self.quiz_set.name} #{self.item_number}: {self.prompt}"
         return f"{self.get_subject_display()} (grade {self.grade}): {self.prompt}"
 
 
@@ -250,10 +483,13 @@ class QuestionAttempt(models.Model):
     )
     subject = models.CharField(max_length=20)
     grade = models.PositiveSmallIntegerField()
-    prompt = models.CharField(max_length=200)
+    prompt = models.CharField(max_length=QUIZ_PROMPT_MAX)
     choices = models.JSONField()
     correct_index = models.PositiveSmallIntegerField()
-    explanation = models.CharField(max_length=200, blank=True)
+    explanation = models.CharField(max_length=QUIZ_EXPLANATION_MAX, blank=True)
+    # Custom quiz snapshot (Phase 8); blank for built-in and generated questions.
+    difficulty = models.CharField(max_length=6, blank=True)
+    quiz_set_name = models.CharField(max_length=60, blank=True)
     issued_at = models.DateTimeField()
     answered_at = models.DateTimeField(null=True, blank=True)
     selected_index = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -269,6 +505,86 @@ class QuestionAttempt(models.Model):
     def __str__(self) -> str:
         state = "unanswered" if self.answered_at is None else "answered"
         return f"Attempt {self.pk} ({self.subject}, {state})"
+
+
+class Accessory(models.Model):
+    """One cosmetic item (Phase 9). Cosmetic only, never a real-money item."""
+
+    key = models.SlugField(unique=True)
+    name = models.CharField(max_length=30)
+    slot = models.CharField(max_length=5, choices=SLOTS)
+    rarity = models.CharField(max_length=10, choices=RARITY)
+    unlock_type = models.CharField(max_length=10, choices=UNLOCK)
+    price = models.PositiveIntegerField(default=0)
+    unlock_stage = models.PositiveSmallIntegerField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["slot", "price", "name"]
+        verbose_name_plural = "accessories"
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.get_slot_display()})"
+
+
+class PlayerProfile(models.Model):
+    """Per-user pearl balance; created lazily with the starter accessories."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="game_profile")
+    pearls = models.PositiveIntegerField(default=0)
+
+    def __str__(self) -> str:
+        return f"{self.user.username}: {self.pearls} pearls"
+
+
+class PearlTransaction(models.Model):
+    """Audit trail for every pearl balance change."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="+")
+    amount = models.IntegerField()
+    reason = models.CharField(max_length=30)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user.username}: {self.amount:+d} ({self.reason})"
+
+
+class UserAccessory(models.Model):
+    """Account-wide inventory: one copy, usable on every fish the user owns."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="accessories")
+    accessory = models.ForeignKey(Accessory, on_delete=models.CASCADE, related_name="+")
+    acquired_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "accessory"], name="uniq_user_accessory"
+            ),
+        ]
+        ordering = ["-acquired_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} owns {self.accessory.name}"
+
+
+class FishEquipment(models.Model):
+    """At most one accessory per slot per fish."""
+
+    fish = models.ForeignKey(Fish, on_delete=models.CASCADE, related_name="equipment")
+    slot = models.CharField(max_length=5, choices=SLOTS)
+    accessory = models.ForeignKey(Accessory, on_delete=models.CASCADE, related_name="+")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["fish", "slot"], name="uniq_fish_slot"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.fish.name}: {self.accessory.name} ({self.slot})"
 
 
 class FishReport(models.Model):
